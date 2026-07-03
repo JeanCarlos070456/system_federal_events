@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="reports-grid">
+  {% for title, rows in data.items %}
+  <div class="panel"><h2>{{ title|title }}</h2><table><thead><tr><th>Status</th><th>Total</th><th>Valor</th></tr></thead><tbody>{% for r in rows %}<tr><td>{% firstof r.status "-" %}</td><td>{{ r.total }}</td><td>{% if r.valor %}R$ {{ r.valor }}{% else %}-{% endif %}</td></tr>{% empty %}<tr><td colspan="3">Sem dados.</td></tr>{% endfor %}</tbody></table></div>
+  {% endfor %}
+</div>
+{% endblock %}

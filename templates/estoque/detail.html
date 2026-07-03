@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="estoque-detail-page">
+
+  <div class="detail-header panel">
+    <div>
+      <h2>{{ orcamento.codigo }}</h2>
+      <p>
+        {{ orcamento.evento_nome }} · {{ orcamento.cliente.nome|default:orcamento.cliente_nome|default:'Sem cliente' }}
+      </p>
+    </div>
+
+    <div class="inline-actions">
+      <a class="btn-secondary" href="{% url 'estoque:index' %}">
+        Voltar à página inicial do estoque
+      </a>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <small>Status do Estoque</small>
+      <strong>
+        <span class="badge-estoque badge-estoque-{{ status_info.classe }}">
+          {{ status_info.status }}
+        </span>
+      </strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Solicitados</small>
+      <strong>{{ status_info.total_solicitado }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Vinculados</small>
+      <strong>{{ status_info.total_vinculado }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Pendentes</small>
+      <strong>{{ status_info.total_pendente }}</strong>
+    </div>
+  </div>
+
+  {% for grupo in grupos_ambientes %}
+    <div class="panel estoque-ambiente-card">
+      <div class="estoque-ambiente-header">
+        <div>
+          <span class="estoque-ambiente-kicker">{{ grupo.tipo }}</span>
+          <h3>{{ grupo.nome }}</h3>
+          <p>
+            {{ grupo.total_vinculado }}/{{ grupo.total_solicitado }} equipamentos vinculados ·
+            {{ grupo.total_pendente }} pendente(s)
+          </p>
+        </div>
+
+        <div class="estoque-ambiente-status">
+          <span class="badge-estoque badge-estoque-{{ grupo.classe }}">
+            {{ grupo.status }}
+          </span>
+
+          <small>{{ grupo.percentual }}%</small>
+        </div>
+      </div>
+
+      <div class="estoque-progress">
+        <div
+          class="estoque-progress-bar estoque-progress-bar-{{ grupo.classe }}"
+          style="width: {{ grupo.percentual }}%;"
+        ></div>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Qtd solicitada</th>
+              <th>Status</th>
+              <th>CODs vinculados</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for item in grupo.itens %}
+              <tr>
+                <td>
+                  <strong>{{ item.equipamento }}</strong>
+                  {% if item.descricao %}
+                    <br>
+                    <small>{{ item.descricao }}</small>
+                  {% endif %}
+                </td>
+
+                <td>{{ item.estoque_qtd_solicitada }}</td>
+
+                <td>
+                  <span class="badge-estoque badge-estoque-{{ item.estoque_status_classe }}">
+                    {{ item.estoque_status }}
+                  </span>
+                </td>
+
+                <td>
+                  <div class="estoque-cods-list">
+                    {% for v in item.estoque_vinculos.all %}
+                      <span class="badge">{{ v.cod_patrimonio }} / {{ v.status }}</span>
+                    {% empty %}
+                      -
+                    {% endfor %}
+                  </div>
+                </td>
+
+                <td>
+                  <div class="estoque-item-actions">
+                    {% if item.estoque_qtd_pendente > 0 %}
+                      <a class="estoque-open-link" href="{% url 'estoque:vincular' item.id %}">
+                        Vincular COD
+                      </a>
+                    {% else %}
+                      <span class="badge-estoque badge-estoque-concluido">
+                        Completo
+                      </span>
+                    {% endif %}
+
+                    {% for v in item.estoque_vinculos.all %}
+                      <form
+                        method="post"
+                        action="{% url 'estoque:excluir_vinculo' v.id %}"
+                        class="estoque-delete-form"
+                        onsubmit="return confirm('Deseja remover o COD {{ v.cod_patrimonio }} deste item?');"
+                      >
+                        {% csrf_token %}
+                        <button type="submit" class="estoque-delete-btn">
+                          Deletar
+                        </button>
+                      </form>
+                    {% endfor %}
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5">Sem itens neste ambiente.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% empty %}
+    <div class="panel">
+      <h3>Itens do orçamento</h3>
+      <p>Sem itens no orçamento.</p>
+    </div>
+  {% endfor %}
+
+</div>
+{% endblock %}

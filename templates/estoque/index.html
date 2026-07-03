@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="estoque-page">
+
+  <div class="panel estoque-list-panel">
+    <div class="estoque-list-header">
+      <div>
+        <h2>Eventos elegíveis para estoque</h2>
+        <p>
+          Faça a separação do equipamento para o evento que será utilizado.
+        </p>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Evento</th>
+
+            {% if pode_ver_valores %}
+              <th>Cliente</th>
+              <th>Financeiro</th>
+            {% endif %}
+
+            <th>Status do Estoque</th>
+
+            {% if pode_ver_valores %}
+              <th>Valor</th>
+            {% endif %}
+
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for o in eventos %}
+            <tr>
+              <td>{{ o.codigo }}</td>
+
+              <td>{{ o.evento_nome }}</td>
+
+              {% if pode_ver_valores %}
+                <td>
+                  {{ o.cliente.nome|default:o.cliente_nome|default:'-' }}
+                </td>
+
+                <td>
+                  <span class="badge">{{ o.financeiro }}</span>
+                </td>
+              {% endif %}
+
+              <td>
+                <div class="estoque-status-cell">
+                  <span class="badge-estoque badge-estoque-{{ o.status_estoque_classe }}">
+                    {{ o.status_estoque }}
+                  </span>
+
+                  <small>
+                    {{ o.estoque_total_vinculado }}/{{ o.estoque_total_solicitado }} vinculados
+                  </small>
+                </div>
+              </td>
+
+              {% if pode_ver_valores %}
+                <td>
+                  R$ {{ o.valor_final|floatformat:2 }}
+                </td>
+              {% endif %}
+
+              <td>
+                <a class="estoque-open-link" href="{% url 'estoque:detail' o.id %}">
+                  Abrir estoque
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="{% if pode_ver_valores %}7{% else %}4{% endif %}">
+                Nenhum evento elegível.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

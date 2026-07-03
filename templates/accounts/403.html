@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="panel center-panel">
+  <h2>Acesso negado</h2>
+  <p>Seu perfil não tem permissão para acessar: <strong>{{ page_name }}</strong>.</p>
+  <a class="btn-secondary" href="{% url 'produtos:index' %}">Voltar ao Produtos</a>
+</div>
+{% endblock %}

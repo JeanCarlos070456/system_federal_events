@@ -1,0 +1,21 @@
+{% load static %}
+<aside class="federal-sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <img src="{% static 'img/logo_vazada.png' %}" alt="Federal Eventos">
+    <div>
+      <strong>Federal</strong>
+      <span>Eventos</span>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    {% for item in nav_items %}
+      <a class="sidebar-link {% if request.resolver_match.namespace == item.slug or request.path|slice:'1:'|slice:':10' == item.slug %}active{% endif %}" href="{% url item.url_name %}">
+        <img src="{% static 'img/'|add:item.icon %}" alt="">
+        <span>{{ item.nome }}</span>
+      </a>
+    {% empty %}
+      <div class="sidebar-empty">Sem páginas liberadas.</div>
+    {% endfor %}
+  </nav>
+</aside>

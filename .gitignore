@@ -1,0 +1,12 @@
+.env
+*.sqlite3
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+staticfiles/
+media/
+.DS_Store
+.idea/
+.vscode/
+.streamlit/secrets.toml

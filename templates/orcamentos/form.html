@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<form method="post" class="panel orcamento-form-panel" novalidate>
+  {% csrf_token %}
+
+  <div class="orcamento-form-header">
+    <div>
+      <h2>{{ page_title }}</h2>
+      <p>Cadastre o cabeçalho do orçamento. Os ambientes e itens serão adicionados depois.</p>
+    </div>
+
+    <div class="inline-actions">
+      <a class="btn-secondary" href="{% url 'orcamentos:index' %}">Voltar</a>
+      <button class="btn-primary" type="submit">Salvar Orçamento</button>
+    </div>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-error">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <div class="form-grid">
+    <p>
+      <label for="{{ form.cliente.id_for_label }}">Cliente cadastrado</label>
+      {{ form.cliente }}
+      {% if form.cliente.errors %}<span class="field-error">{{ form.cliente.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.cliente_nome.id_for_label }}">Cliente / Razão Social</label>
+      {{ form.cliente_nome }}
+      {% if form.cliente_nome.errors %}<span class="field-error">{{ form.cliente_nome.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.cliente_documento.id_for_label }}">Documento</label>
+      {{ form.cliente_documento }}
+      {% if form.cliente_documento.errors %}<span class="field-error">{{ form.cliente_documento.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.responsavel_cliente.id_for_label }}">Responsável do Cliente</label>
+      {{ form.responsavel_cliente }}
+      {% if form.responsavel_cliente.errors %}<span class="field-error">{{ form.responsavel_cliente.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.evento_nome.id_for_label }}">Nome do Evento</label>
+      {{ form.evento_nome }}
+      {% if form.evento_nome.errors %}<span class="field-error">{{ form.evento_nome.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.local_evento.id_for_label }}">Local do Evento</label>
+      {{ form.local_evento }}
+      {% if form.local_evento.errors %}<span class="field-error">{{ form.local_evento.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.data_envio.id_for_label }}">Data de Envio</label>
+      {{ form.data_envio }}
+      {% if form.data_envio.errors %}<span class="field-error">{{ form.data_envio.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.validade_dias.id_for_label }}">Validade em dias</label>
+      {{ form.validade_dias }}
+      {% if form.validade_dias.errors %}<span class="field-error">{{ form.validade_dias.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.data_montagem.id_for_label }}">Data de Montagem</label>
+      {{ form.data_montagem }}
+      {% if form.data_montagem.errors %}<span class="field-error">{{ form.data_montagem.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.data_inicio.id_for_label }}">Data de Início</label>
+      {{ form.data_inicio }}
+      {% if form.data_inicio.errors %}<span class="field-error">{{ form.data_inicio.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.data_fim.id_for_label }}">Data de Fim</label>
+      {{ form.data_fim }}
+      {% if form.data_fim.errors %}<span class="field-error">{{ form.data_fim.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.status.id_for_label }}">Status</label>
+      {{ form.status }}
+      {% if form.status.errors %}<span class="field-error">{{ form.status.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.financeiro.id_for_label }}">Financeiro</label>
+      {{ form.financeiro }}
+      {% if form.financeiro.errors %}<span class="field-error">{{ form.financeiro.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.valor_desconto.id_for_label }}">Desconto Geral</label>
+      {{ form.valor_desconto }}
+      {% if form.valor_desconto.errors %}<span class="field-error">{{ form.valor_desconto.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.valor_caucao.id_for_label }}">Caução</label>
+      {{ form.valor_caucao }}
+      {% if form.valor_caucao.errors %}<span class="field-error">{{ form.valor_caucao.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.observacoes.id_for_label }}">Observações</label>
+      {{ form.observacoes }}
+      {% if form.observacoes.errors %}<span class="field-error">{{ form.observacoes.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.condicoes_pagamento.id_for_label }}">Condições de Pagamento</label>
+      {{ form.condicoes_pagamento }}
+      {% if form.condicoes_pagamento.errors %}<span class="field-error">{{ form.condicoes_pagamento.errors }}</span>{% endif %}
+    </p>
+  </div>
+
+  <div class="form-actions">
+    <a class="btn-secondary" href="{% url 'orcamentos:index' %}">Cancelar</a>
+    <button class="btn-primary" type="submit">Salvar Orçamento</button>
+  </div>
+</form>
+{% endblock %}

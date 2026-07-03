@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="financeiro-page">
+
+  <div class="panel detail-header">
+    <div>
+      <span class="page-kicker">Gestão financeira</span>
+      <h2>Financeiro</h2>
+      <p>Controle os pagamentos dos orçamentos, valores recebidos, saldos em aberto e atrasos.</p>
+    </div>
+
+    <div class="inline-actions">
+      <a class="btn-primary" href="{% url 'financeiro:create' %}">
+        Lançar pagamento
+      </a>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <small>Total a receber</small>
+      <strong>{{ resumo.total_receber_fmt }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Total recebido</small>
+      <strong>{{ resumo.total_recebido_fmt }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Em aberto</small>
+      <strong>{{ resumo.total_aberto_fmt }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Atrasado</small>
+      <strong>{{ resumo.total_atrasado_fmt }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Orçamentos</small>
+      <strong>{{ resumo.qtd_orcamentos }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Pagos</small>
+      <strong>{{ resumo.qtd_pago }}</strong>
+    </div>
+  </div>
+
+  <div class="panel">
+    <form method="get" class="search-form">
+      <input
+        type="text"
+        name="q"
+        value="{{ q }}"
+        placeholder="Buscar por código, evento, cliente ou local"
+      >
+
+      <select name="financeiro">
+        <option value="">Todos os status</option>
+        {% for option in status_options %}
+          <option value="{{ option }}" {% if financeiro == option %}selected{% endif %}>
+            {{ option }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn-secondary">
+        Filtrar
+      </button>
+
+      <a href="{% url 'financeiro:index' %}" class="btn-secondary">
+        Limpar
+      </a>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="toolbar">
+      <div>
+        <h3>Orçamentos e pagamentos</h3>
+        <p class="products-muted">
+          Acompanhe o valor final, recebido, em aberto e o status financeiro de cada evento.
+        </p>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Evento</th>
+            <th>Cliente</th>
+            <th>Data</th>
+            <th>Valor final</th>
+            <th>Recebido</th>
+            <th>Em aberto</th>
+            <th>Status</th>
+            <th>Último pagamento</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for linha in page_obj %}
+            <tr>
+              <td>
+                <strong>{{ linha.codigo }}</strong>
+              </td>
+
+              <td>
+                {{ linha.evento }}
+              </td>
+
+              <td>
+                {{ linha.cliente }}
+              </td>
+
+              <td>
+                {{ linha.data_evento }}
+              </td>
+
+              <td>
+                {{ linha.valor_final_fmt }}
+              </td>
+
+              <td>
+                {{ linha.recebido_fmt }}
+              </td>
+
+              <td>
+                <strong>{{ linha.saldo_fmt }}</strong>
+              </td>
+
+              <td>
+                <span class="badge financeiro-status-{{ linha.status_slug }}">
+                  {{ linha.status }}
+                </span>
+              </td>
+
+              <td>
+                {{ linha.ultimo_pagamento }}
+              </td>
+
+              <td>
+                {% if linha.status == "Pago" %}
+                  <span class="badge financeiro-status-pago">
+                    Quitado
+                  </span>
+                {% elif linha.status == "Cancelado" %}
+                  <span class="badge financeiro-status-cancelado">
+                    Cancelado
+                  </span>
+                {% else %}
+                  <a
+                    class="btn-secondary btn-small"
+                    href="{% url 'financeiro:create' %}?orcamento={{ linha.orcamento.id }}"
+                  >
+                    Lançar pagamento
+                  </a>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="10">
+                Nenhum orçamento encontrado para o filtro aplicado.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="toolbar">
+      <div>
+        <h3>Últimos movimentos</h3>
+        <p class="products-muted">
+          Histórico recente de pagamentos e movimentações financeiras.
+        </p>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Descrição</th>
+            <th>Orçamento</th>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Status</th>
+            <th>Valor</th>
+            <th>Pagamento</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for movimento in movimentos_recentes %}
+            <tr>
+              <td>
+                {{ movimento.descricao }}
+              </td>
+
+              <td>
+                {% if movimento.orcamento %}
+                  {{ movimento.orcamento.codigo }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+              <td>
+                {% if movimento.cliente %}
+                  {{ movimento.cliente.nome }}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+
+              <td>
+                {{ movimento.tipo }}
+              </td>
+
+              <td>
+                <span class="badge">
+                  {{ movimento.status }}
+                </span>
+              </td>
+
+              <td>
+                R$ {{ movimento.valor }}
+              </td>
+
+              <td>
+                {{ movimento.data_pagamento|date:"d/m/Y"|default:"-" }}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7">
+                Nenhum movimento financeiro registrado.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% include 'components/pagination.html' with page_obj=page_obj %}
+
+</div>
+{% endblock %}

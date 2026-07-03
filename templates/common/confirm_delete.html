@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="panel center-panel">
+  <h2>Confirmar exclusão</h2>
+  <p>Deseja realmente excluir <strong>{{ object }}</strong>?</p>
+  <form method="post" class="inline-actions">
+    {% csrf_token %}
+    <button class="btn-danger" type="submit">Excluir</button>
+    <a class="btn-secondary" href="javascript:history.back()">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

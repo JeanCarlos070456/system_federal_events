@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="clientes-page">
+
+  <div class="clientes-toolbar panel">
+    <div>
+      <h2>Clientes</h2>
+      <p>Cadastro geral de clientes, contatos e dados fiscais para orçamentos.</p>
+    </div>
+
+    <a class="btn-primary" href="{% url 'clientes:create' %}">
+      Novo cliente
+    </a>
+  </div>
+
+  <div class="clientes-stats-grid">
+    <div class="stat-card">
+      <small>Total</small>
+      <strong>{{ total_clientes }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Ativos</small>
+      <strong>{{ total_ativos }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Prospectos</small>
+      <strong>{{ total_prospectos }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Bloqueados</small>
+      <strong>{{ total_bloqueados }}</strong>
+    </div>
+  </div>
+
+  <form method="get" class="clientes-filter-panel panel">
+    <div class="clientes-search-row">
+      <input
+        name="q"
+        value="{{ q }}"
+        placeholder="Buscar cliente, CNPJ/CPF, e-mail, telefone, WhatsApp ou cidade"
+      >
+
+      <select name="status">
+        <option value="">Todos os status</option>
+        {% for option in status_options %}
+          <option value="{{ option }}" {% if status == option %}selected{% endif %}>
+            {{ option }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <button class="btn-secondary" type="submit">
+        Buscar
+      </button>
+
+      <a class="btn-secondary" href="{% url 'clientes:index' %}">
+        Limpar
+      </a>
+    </div>
+  </form>
+
+  <div class="panel clientes-table-panel">
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Documento</th>
+            <th>Contato</th>
+            <th>Cidade/UF</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for c in page_obj %}
+            <tr>
+              <td>
+                <strong>{{ c.nome }}</strong>
+                {% if c.responsavel_nome %}
+                  <br>
+                  <small>{{ c.responsavel_nome }}</small>
+                {% endif %}
+              </td>
+
+              <td>{{ c.documento|default:'—' }}</td>
+
+              <td>
+                {% if c.whatsapp %}
+                  {{ c.whatsapp }}
+                {% elif c.telefone %}
+                  {{ c.telefone }}
+                {% elif c.email %}
+                  {{ c.email }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+
+              <td>
+                {% if c.cidade or c.uf %}
+                  {{ c.cidade|default:'—' }}/{{ c.uf|default:'—' }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+
+              <td>
+                <span class="badge">{{ c.status }}</span>
+              </td>
+
+              <td>
+                <a class="btn-secondary btn-small" href="{% url 'clientes:detail' c.id %}">
+                  Abrir
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6">Nenhum cliente encontrado.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% include 'components/pagination.html' with page_obj=page_obj %}
+</div>
+{% endblock %}

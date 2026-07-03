@@ -1,0 +1,361 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <small>Clientes</small>
+    <strong>{{ metrics.clientes }}</strong>
+  </div>
+
+  <div class="stat-card">
+    <small>Produtos</small>
+    <strong>{{ metrics.produtos }}</strong>
+  </div>
+
+  <div class="stat-card">
+    <small>Patrimônios disponíveis</small>
+    <strong>{{ metrics.patrimonios_disponiveis }}</strong>
+  </div>
+
+  <div class="stat-card">
+    <small>Orçamentos</small>
+    <strong>{{ metrics.orcamentos }}</strong>
+  </div>
+
+  <div class="stat-card">
+    <small>Aprovados</small>
+    <strong>{{ metrics.orcamentos_aprovados }}</strong>
+  </div>
+
+  <div class="stat-card">
+    <small>Itens retirados</small>
+    <strong>{{ metrics.estoque_retirado }}</strong>
+  </div>
+</div>
+
+<div class="panel dashboard-money-panel">
+  <div>
+    <h2>Valor em Orçamentos</h2>
+    <p class="money">R$ {{ metrics.valor_orcamentos|floatformat:2 }}</p>
+  </div>
+
+  <div>
+    <h2>Valor Pago</h2>
+    <p class="money">R$ {{ metrics.valor_pago|floatformat:2 }}</p>
+  </div>
+
+  <div>
+    <h2>Valor Parcial</h2>
+    <p class="money">R$ {{ metrics.valor_parcial|floatformat:2 }}</p>
+  </div>
+</div>
+
+<section class="dashboard-section">
+  <div class="dashboard-section-heading">
+    <h2>▣ Receita Operacional</h2>
+    <p>Soma dos orçamentos com financeiro Pago ou Parcial por mês.</p>
+  </div>
+
+  <div class="dashboard-chart-grid">
+    <div class="dashboard-chart-card dashboard-chart-card-large">
+      <h3>Receita por mês</h3>
+      <div class="chart-box">
+        <canvas id="receitaChart"></canvas>
+      </div>
+    </div>
+
+    <div class="dashboard-chart-card">
+      <h3>Patrimônios por status</h3>
+      <div class="chart-box">
+        <canvas id="patrimoniosChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dashboard-section">
+  <div class="dashboard-section-heading">
+    <h2>▣ Financeiro por Status</h2>
+    <p>Distribuição de valores dos orçamentos por status financeiro.</p>
+  </div>
+
+  <div class="dashboard-chart-card dashboard-chart-card-full">
+    <h3>Valor por status financeiro</h3>
+    <div class="chart-box chart-box-wide">
+      <canvas id="financeiroChart"></canvas>
+    </div>
+  </div>
+</section>
+
+<section class="dashboard-section">
+  <div class="dashboard-section-heading">
+    <h2>▣ Alertas Automáticos</h2>
+    <p>Pontos que precisam de atenção operacional.</p>
+  </div>
+
+  <div class="dashboard-alert-grid">
+    <div class="dashboard-alert-card {% if alertas.financeiro_atrasado_qtd > 0 %}danger{% else %}success{% endif %}">
+      <strong>{% if alertas.financeiro_atrasado_qtd > 0 %}⚠{% else %}◆{% endif %} Financeiro sem atraso</strong>
+
+      {% if alertas.financeiro_atrasado_qtd > 0 %}
+        <p>
+          {{ alertas.financeiro_atrasado_qtd }} orçamento(s) em atraso.
+          Valor: R$ {{ alertas.financeiro_atrasado_valor|floatformat:2 }}.
+        </p>
+      {% else %}
+        <p>Nenhum valor em atraso identificado no momento.</p>
+      {% endif %}
+    </div>
+
+    <div class="dashboard-alert-card {% if alertas.equipamentos_bloqueados > 0 %}warning{% else %}success{% endif %}">
+      <strong>{% if alertas.equipamentos_bloqueados > 0 %}⚠{% else %}◆{% endif %} Equipamentos bloqueados</strong>
+
+      {% if alertas.equipamentos_bloqueados > 0 %}
+        <p>{{ alertas.equipamentos_bloqueados }} patrimônio(s) em manutenção, danificado ou extraviado.</p>
+      {% else %}
+        <p>Nenhum patrimônio bloqueado no momento.</p>
+      {% endif %}
+    </div>
+
+    <div class="dashboard-alert-card {% if alertas.devolucoes_pendentes > 0 %}warning{% else %}success{% endif %}">
+      <strong>{% if alertas.devolucoes_pendentes > 0 %}⚠{% else %}◆{% endif %} Devoluções em dia</strong>
+
+      {% if alertas.devolucoes_pendentes > 0 %}
+        <p>{{ alertas.devolucoes_pendentes }} item(ns) retirado(s) pendente(s) de devolução.</p>
+      {% else %}
+        <p>Não há retirada pendente de devolução no momento.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="dashboard-section">
+  <div class="dashboard-section-heading">
+    <h2>▣ Orçamentos Recentes</h2>
+    <p>Últimos orçamentos cadastrados no banco.</p>
+  </div>
+
+  <div class="panel dashboard-table-panel">
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Cliente</th>
+            <th>Evento</th>
+            <th>Período</th>
+            <th>Local</th>
+            <th>Status</th>
+            <th>Financeiro</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for row in orcamentos_recentes %}
+            <tr>
+              <td>{{ row.codigo }}</td>
+              <td>{{ row.cliente }}</td>
+              <td>{{ row.evento }}</td>
+              <td>{{ row.periodo }}</td>
+              <td>{{ row.local }}</td>
+              <td><span class="badge">{{ row.status }}</span></td>
+              <td><span class="badge">{{ row.financeiro }}</span></td>
+              <td>R$ {{ row.valor|floatformat:2 }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="8">Nenhum orçamento encontrado.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+{{ receita_chart|json_script:"receita-chart-data" }}
+{{ patrimonios_chart|json_script:"patrimonios-chart-data" }}
+{{ financeiro_chart|json_script:"financeiro-chart-data" }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const receitaData = JSON.parse(document.getElementById("receita-chart-data").textContent);
+    const patrimoniosData = JSON.parse(document.getElementById("patrimonios-chart-data").textContent);
+    const financeiroData = JSON.parse(document.getElementById("financeiro-chart-data").textContent);
+
+    const gridColor = "rgba(255, 255, 255, 0.12)";
+    const textColor = "rgba(245, 247, 255, 0.88)";
+    const cyan = "rgba(78, 190, 255, 0.95)";
+    const cyanFill = "rgba(78, 190, 255, 0.18)";
+    const purple = "rgba(167, 141, 239, 0.95)";
+    const green = "rgba(125, 255, 178, 0.95)";
+    const warning = "rgba(255, 200, 87, 0.95)";
+    const danger = "rgba(255, 47, 109, 0.95)";
+
+    function moneyBR(value) {
+      return Number(value || 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+      });
+    }
+
+    Chart.defaults.color = textColor;
+    Chart.defaults.font.family = "'Courier New', monospace";
+
+    const receitaEl = document.getElementById("receitaChart");
+    if (receitaEl) {
+      new Chart(receitaEl, {
+        type: "line",
+        data: {
+          labels: receitaData.labels,
+          datasets: [{
+            label: "Receita",
+            data: receitaData.values,
+            borderColor: cyan,
+            backgroundColor: cyanFill,
+            tension: 0.35,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return "Receita: " + moneyBR(context.raw);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: "transparent"
+              },
+              ticks: {
+                color: textColor
+              }
+            },
+            y: {
+              grid: {
+                color: gridColor
+              },
+              ticks: {
+                color: textColor,
+                callback: function (value) {
+                  return moneyBR(value).replace("R$", "").trim();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    const patrimoniosEl = document.getElementById("patrimoniosChart");
+    if (patrimoniosEl) {
+      new Chart(patrimoniosEl, {
+        type: "doughnut",
+        data: {
+          labels: patrimoniosData.labels,
+          datasets: [{
+            label: "Patrimônios",
+            data: patrimoniosData.values,
+            backgroundColor: [
+              cyan,
+              purple,
+              green,
+              warning,
+              danger,
+              "rgba(177, 179, 188, 0.90)",
+              "rgba(12, 132, 180, 0.70)"
+            ],
+            borderColor: "rgba(2, 2, 5, 1)",
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "58%",
+          plugins: {
+            legend: {
+              position: "right",
+              labels: {
+                color: textColor,
+                boxWidth: 14,
+                boxHeight: 14
+              }
+            }
+          }
+        }
+      });
+    }
+
+    const financeiroEl = document.getElementById("financeiroChart");
+    if (financeiroEl) {
+      new Chart(financeiroEl, {
+        type: "bar",
+        data: {
+          labels: financeiroData.labels,
+          datasets: [{
+            label: "Valor",
+            data: financeiroData.values,
+            backgroundColor: cyan,
+            borderColor: "rgba(255, 255, 255, 0.22)",
+            borderWidth: 1,
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return "Valor: " + moneyBR(context.raw);
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: {
+                color: "transparent"
+              },
+              ticks: {
+                color: textColor
+              }
+            },
+            y: {
+              grid: {
+                color: gridColor
+              },
+              ticks: {
+                color: textColor,
+                callback: function (value) {
+                  return moneyBR(value).replace("R$", "").trim();
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="produtos-page">
+
+  <div class="products-toolbar panel">
+    <div>
+      <h2>Visualização em Cards</h2>
+      <p>Produtos cadastrados como unidades físicas únicas no banco de dados.</p>
+    </div>
+
+    <a class="btn-primary" href="{% url 'produtos:create' %}">
+      Novo produto
+    </a>
+  </div>
+
+  <form method="get" class="products-filter-panel panel">
+    <div class="products-search-row">
+      <input
+        name="q"
+        value="{{ q }}"
+        placeholder="Buscar produto, código, marca, modelo ou descrição"
+      >
+
+      <button class="btn-secondary" type="submit">
+        Filtrar
+      </button>
+
+      <a class="btn-secondary" href="{% url 'produtos:index' %}">
+        Limpar
+      </a>
+    </div>
+
+    <div class="products-filter-grid">
+      <div>
+        <label class="products-filter-label">Filtrar por status</label>
+
+        <div class="filter-chip-group">
+          {% for option in status_options %}
+            <label class="filter-chip {% if option in selected_status %}active{% endif %}">
+              <input
+                type="checkbox"
+                name="status"
+                value="{{ option }}"
+                {% if option in selected_status %}checked{% endif %}
+              >
+              <span>{{ option }}</span>
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <label class="products-filter-label">Filtrar por categoria</label>
+
+        <div class="filter-chip-group">
+          {% for cat in categorias %}
+            <label class="filter-chip {% if cat in selected_categorias %}active{% endif %}">
+              <input
+                type="checkbox"
+                name="categoria"
+                value="{{ cat }}"
+                {% if cat in selected_categorias %}checked{% endif %}
+              >
+              <span>{{ cat }}</span>
+            </label>
+          {% empty %}
+            <span class="products-muted">Nenhuma categoria cadastrada.</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="products-card-grid">
+    {% for p in page_obj %}
+      <article class="produto-card produto-status-{{ p.card_status_class }}">
+        <div class="produto-card-media">
+          {% if p.card_image_url %}
+            <img src="{{ p.card_image_url }}" alt="{{ p.nome }}">
+          {% else %}
+            <div class="produto-card-media-placeholder">
+              <img src="{% static 'img/logo_vazada.png' %}" alt="Federal Eventos">
+            </div>
+          {% endif %}
+
+          <span class="produto-card-status produto-status-badge-{{ p.card_status_class }}">
+            {{ p.status }}
+          </span>
+        </div>
+
+        <div class="produto-card-body">
+          <h3>{{ p.nome }}</h3>
+
+          <p class="produto-card-meta">
+            {{ p.categoria|default:'Sem categoria' }}
+            {% if p.marca %} · {{ p.marca }}{% endif %}
+            {% if p.modelo %} · {{ p.modelo }}{% endif %}
+          </p>
+
+          {% if can_manage_values %}
+            {% if p.card_tem_valor %}
+              <div class="produto-card-price">
+                R$ {{ p.valor_diaria|floatformat:2 }}/dia
+              </div>
+            {% else %}
+              <a class="produto-card-missing-value" href="{% url 'produtos:update' p.id %}">
+                Adicionar valor
+              </a>
+            {% endif %}
+          {% endif %}
+
+          <div class="produto-card-stock">
+            Código:
+            <strong>{{ p.codigo }}</strong>
+          </div>
+
+          <div class="produto-card-stock">
+            Unidade física:
+            {% if p.status == "Disponível" %}
+              <strong>Disponível</strong>
+            {% else %}
+              <strong>Indisponível</strong>
+            {% endif %}
+          </div>
+
+          {% if p.localizacao %}
+            <div class="produto-card-location">
+              📍 {{ p.localizacao }}
+            </div>
+          {% endif %}
+
+          <div class="produto-card-assets">
+            <span title="Vídeos">🎬 {{ p.card_videos_count }}</span>
+            <span title="Imagens">🖼️ {{ p.card_imagens_count }}</span>
+            <span title="Documentos">📄 {{ p.card_documentos_count }}</span>
+            <span title="CODs/Patrimônios">🏷️ {{ p.card_patrimonios_count }}</span>
+          </div>
+        </div>
+
+        <a class="produto-card-action" href="{% url 'produtos:detail' p.id %}">
+          Ver detalhes
+        </a>
+      </article>
+    {% empty %}
+      <div class="panel center-panel">
+        <h2>Nenhum produto encontrado</h2>
+        <p>Cadastre um novo produto ou ajuste os filtros aplicados.</p>
+        <a class="btn-primary" href="{% url 'produtos:create' %}">
+          Novo produto
+        </a>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% include 'components/pagination.html' with page_obj=page_obj %}
+</div>
+{% endblock %}

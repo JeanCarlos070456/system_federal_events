@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="agenda-page">
+
+  <div class="panel agenda-hero">
+    <div>
+      <span class="page-kicker">Sistema de Gestão</span>
+      <h2>Agenda</h2>
+      <p>
+        Selecione um evento, visualize as datas operacionais e baixe a relação de equipamentos.
+      </p>
+    </div>
+  </div>
+
+  <div class="panel agenda-select-panel">
+    <label for="agendaEventoSelect">Selecionar evento</label>
+
+    <select id="agendaEventoSelect" class="agenda-event-select">
+      {% for evento in eventos %}
+        <option
+          value="{{ evento.id }}"
+          {% if orcamento_selecionado and evento.id == orcamento_selecionado.id %}selected{% endif %}
+        >
+          {{ evento.codigo }} - {{ evento.evento_nome }}
+        </option>
+      {% empty %}
+        <option value="">Nenhum evento encontrado</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  {% if orcamento_selecionado %}
+    <div class="panel agenda-info-card">
+      <div class="agenda-info-grid">
+        <div class="agenda-info-block">
+          <span>Nome do Evento:</span>
+          <strong>{{ orcamento_selecionado.evento_nome }}</strong>
+        </div>
+
+        <div class="agenda-info-block">
+          <span>Data do Evento:</span>
+          <strong>
+            {% if orcamento_selecionado.data_inicio and orcamento_selecionado.data_fim %}
+              {{ orcamento_selecionado.data_inicio|date:"d/m/Y" }} a {{ orcamento_selecionado.data_fim|date:"d/m/Y" }}
+            {% elif orcamento_selecionado.data_inicio %}
+              {{ orcamento_selecionado.data_inicio|date:"d/m/Y" }}
+            {% else %}
+              Não informado
+            {% endif %}
+          </strong>
+        </div>
+
+        <div class="agenda-info-block">
+          <span>Local:</span>
+          <strong>{{ orcamento_selecionado.local_evento|default:"Local não informado" }}</strong>
+        </div>
+
+        <div class="agenda-info-block">
+          <span>Data de montagem:</span>
+          <strong>
+            {% if orcamento_selecionado.data_montagem %}
+              {{ orcamento_selecionado.data_montagem|date:"d/m/Y" }}
+            {% else %}
+              Não informado
+            {% endif %}
+          </strong>
+        </div>
+      </div>
+
+      <div class="agenda-info-actions">
+        <a
+          class="btn-primary"
+          href="{% url 'agenda:baixar_relacao_evento' orcamento_selecionado.id %}"
+        >
+          Baixar relação do evento
+        </a>
+      </div>
+    </div>
+  {% else %}
+    <div class="panel">
+      <p>Nenhum evento disponível para exibir na agenda.</p>
+    </div>
+  {% endif %}
+
+  <section class="agenda-calendar-section">
+    <div class="agenda-section-title">
+      <span>▣</span>
+      <h3>Calendário de Eventos</h3>
+    </div>
+
+    <div class="agenda-calendar-nav">
+      <a
+        class="btn-secondary"
+        href="?month={{ previous_month.month }}&year={{ previous_month.year }}{% if orcamento_selecionado %}&orcamento={{ orcamento_selecionado.id }}{% endif %}"
+      >
+        ◀ Mês anterior
+      </a>
+
+      <h2>{{ month_name }} / {{ year }}</h2>
+
+      <a
+        class="btn-secondary"
+        href="?month={{ next_month.month }}&year={{ next_month.year }}{% if orcamento_selecionado %}&orcamento={{ orcamento_selecionado.id }}{% endif %}"
+      >
+        Próximo mês ▶
+      </a>
+    </div>
+
+    <div class="agenda-calendar">
+      <div class="agenda-weekday">Seg</div>
+      <div class="agenda-weekday">Ter</div>
+      <div class="agenda-weekday">Qua</div>
+      <div class="agenda-weekday">Qui</div>
+      <div class="agenda-weekday">Sex</div>
+      <div class="agenda-weekday">Sáb</div>
+      <div class="agenda-weekday">Dom</div>
+
+      {% for week in calendar_weeks %}
+        {% for dia in week %}
+          <div class="agenda-day {% if not dia.in_month %}agenda-day-muted{% endif %} {% if dia.is_today %}agenda-day-today{% endif %}">
+            <div class="agenda-day-number">{{ dia.day }}</div>
+
+            <div class="agenda-day-events">
+              {% for ev in dia.eventos %}
+                <a
+                  class="agenda-event-pill"
+                  href="?orcamento={{ ev.id }}&month={{ month }}&year={{ year }}"
+                  title="{{ ev.titulo }}"
+                >
+                  <strong>{{ ev.titulo }}</strong>
+                  <small>{{ ev.local }}</small>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const select = document.getElementById("agendaEventoSelect");
+
+  if (!select) return;
+
+  select.addEventListener("change", function () {
+    const value = select.value;
+
+    if (!value) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("orcamento", value);
+    url.searchParams.delete("month");
+    url.searchParams.delete("year");
+
+    window.location.href = url.toString();
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Login — Federal Eventos{% endblock %}
+{% block content %}
+<div class="login-page">
+  <div class="login-card">
+    <img class="login-logo" src="{% static 'img/logo_vazada.png' %}" alt="Federal Eventos">
+    <h1>Federal Eventos</h1>
+    <p>Entre com sua conta cadastrada no sistema.</p>
+
+    <form method="post" class="form-grid single">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% for field in form %}
+        <label>{{ field.label }}{{ field }}</label>
+        {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+      {% endfor %}
+      <button class="btn-primary" type="submit">Entrar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

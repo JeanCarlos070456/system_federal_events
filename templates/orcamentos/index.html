@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="orcamentos-page">
+
+  <div class="orcamentos-toolbar panel">
+    <div>
+      <h2>Orçamentos</h2>
+      <p>Controle de propostas, ambientes, itens e vínculo posterior com estoque.</p>
+    </div>
+
+    <a class="btn-primary" href="{% url 'orcamentos:create' %}">
+      Novo orçamento
+    </a>
+  </div>
+
+  <form method="get" class="orcamentos-filter-panel panel">
+    <div class="orcamentos-search-row">
+      <input
+        name="q"
+        value="{{ q }}"
+        placeholder="Buscar código, evento ou cliente"
+      >
+
+      <select name="status">
+        <option value="">Todos os status</option>
+        {% for option in status_options %}
+          <option value="{{ option }}" {% if status == option %}selected{% endif %}>
+            {{ option }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <button class="btn-secondary" type="submit">
+        Buscar
+      </button>
+
+      <a class="btn-secondary" href="{% url 'orcamentos:index' %}">
+        Limpar
+      </a>
+    </div>
+  </form>
+
+  <div class="panel">
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Evento</th>
+            <th>Cliente</th>
+            <th>Status</th>
+            <th>Financeiro</th>
+            <th>Valor</th>
+            <th></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for o in page_obj %}
+            <tr>
+              <td>{{ o.codigo }}</td>
+              <td>{{ o.evento_nome }}</td>
+              <td>{{ o.cliente.nome|default:o.cliente_nome|default:'—' }}</td>
+              <td>
+                {% if o.status_visual == "Concluído" %}
+                  <span class="badge-status badge-status-concluido">Concluído</span>
+                {% else %}
+                  <span class="badge-status badge-status-analise">Em análise</span>
+                {% endif %}
+              </td>
+              <td><span class="badge">{{ o.financeiro }}</span></td>
+              <td>R$ {{ o.valor_final|floatformat:2 }}</td>
+              <td>
+                <a class="btn-secondary btn-small" href="{% url 'orcamentos:detail' o.id %}">
+                  Abrir
+                </a>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="7">Nenhum orçamento encontrado.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% include 'components/pagination.html' with page_obj=page_obj %}
+</div>
+{% endblock %}

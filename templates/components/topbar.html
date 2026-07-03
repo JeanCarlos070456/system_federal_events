@@ -1,0 +1,12 @@
+<button class="mobile-menu-btn" type="button" onclick="toggleSidebar()">☰</button>
+<header class="topbar">
+  <div>
+    <span class="eyebrow">Sistema de Gestão</span>
+    <h1>{{ page_title|default:"Federal Eventos" }}</h1>
+  </div>
+  <div class="user-pill">
+    <span>{{ app_user.nome }}</span>
+    <small>{{ app_user.perfil }}</small>
+    <a href="{% url 'accounts:logout' %}">Sair</a>
+  </div>
+</header>

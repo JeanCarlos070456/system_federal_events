@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="produto-detail-page">
+
+  <div class="produto-detail-hero panel">
+    <div class="produto-detail-media">
+      {% if imagem_principal and imagem_principal.file_url %}
+        <img src="{{ imagem_principal.file_url }}" alt="{{ produto.nome }}">
+      {% else %}
+        <div class="produto-detail-media-placeholder">
+          <img src="{% static 'img/logo_vazada.png' %}" alt="Federal Eventos">
+          <span>Sem imagem cadastrada</span>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="produto-detail-main">
+      <div class="produto-detail-kicker">
+        {{ produto.codigo }} · {{ produto.categoria|default:'Sem categoria' }}
+      </div>
+
+      <h2>{{ produto.nome }}</h2>
+
+      <p>
+        {% if produto.descricao %}
+          {{ produto.descricao }}
+        {% else %}
+          Produto cadastrado sem descrição detalhada.
+        {% endif %}
+      </p>
+
+      <div class="produto-detail-badges">
+        <span class="produto-card-status produto-status-badge-{{ produto.detail_status_class }}">
+          {{ produto.status }}
+        </span>
+
+        {% if produto.marca %}
+          <span class="badge">{{ produto.marca }}</span>
+        {% endif %}
+
+        {% if produto.modelo %}
+          <span class="badge">{{ produto.modelo }}</span>
+        {% endif %}
+      </div>
+
+      <div class="inline-actions">
+        <a class="btn-secondary" href="{% url 'produtos:index' %}">
+          Voltar
+        </a>
+
+        <a class="btn-secondary" href="{% url 'produtos:update' produto.id %}">
+          Editar
+        </a>
+
+        <a class="btn-primary" href="{% url 'produtos:patrimonio_create' produto.id %}">
+          Novo COD
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="produto-detail-metrics">
+    {% if can_manage_values %}
+      {% if produto.detail_tem_valor %}
+        <div class="stat-card">
+          <small>Diária</small>
+          <strong>R$ {{ produto.valor_diaria|floatformat:2 }}</strong>
+        </div>
+
+        <div class="stat-card">
+          <small>Semanal</small>
+          <strong>R$ {{ produto.valor_semanal|floatformat:2 }}</strong>
+        </div>
+
+        <div class="stat-card">
+          <small>Mensal</small>
+          <strong>R$ {{ produto.valor_mensal|floatformat:2 }}</strong>
+        </div>
+      {% else %}
+        <a class="stat-card produto-value-missing-card" href="{% url 'produtos:update' produto.id %}">
+          <small>Valores</small>
+          <strong>Adicionar valor</strong>
+        </a>
+      {% endif %}
+    {% endif %}
+
+    <div class="stat-card">
+      <small>Unidade física</small>
+      <strong>Única</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Código</small>
+      <strong>{{ produto.codigo }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Localização</small>
+      <strong>{{ produto.localizacao|default:'—' }}</strong>
+    </div>
+  </div>
+
+  <div class="produto-detail-grid">
+
+    <section class="panel">
+      <h3>Dados do Produto</h3>
+
+      <div class="data-grid">
+        <div>
+          <small>Código único</small>
+          <strong>{{ produto.codigo }}</strong>
+        </div>
+
+        <div>
+          <small>Categoria</small>
+          <strong>{{ produto.categoria|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Subcategoria</small>
+          <strong>{{ produto.subcategoria|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Marca</small>
+          <strong>{{ produto.marca|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Modelo</small>
+          <strong>{{ produto.modelo|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Status</small>
+          <strong>{{ produto.status }}</strong>
+        </div>
+
+        <div>
+          <small>Controle de estoque</small>
+          <strong>
+            {% if produto.status == "Disponível" %}
+              Disponível para uso
+            {% else %}
+              Indisponível para uso
+            {% endif %}
+          </strong>
+        </div>
+
+        <div>
+          <small>Quantidade total</small>
+          <strong>{{ produto.quantidade_total }}</strong>
+        </div>
+
+        <div>
+          <small>Quantidade disponível</small>
+          <strong>{{ produto.quantidade_disponivel }}</strong>
+        </div>
+      </div>
+
+      {% if produto.especificacoes %}
+        <hr>
+        <h3>Especificações</h3>
+        <p>{{ produto.especificacoes|linebreaksbr }}</p>
+      {% endif %}
+
+      {% if produto.observacoes %}
+        <hr>
+        <h3>Observações</h3>
+        <p>{{ produto.observacoes|linebreaksbr }}</p>
+      {% endif %}
+    </section>
+
+    <section class="panel">
+      <h3>Mídias do Produto</h3>
+
+      <div class="produto-media-summary">
+        <span>🖼️ {{ imagens|length }} imagem(ns)</span>
+        <span>🎬 {{ videos|length }} vídeo(s)</span>
+        <span>📄 {{ documentos|length }} documento(s)</span>
+      </div>
+
+      {% if imagens %}
+        <h4>Imagens</h4>
+
+        <div class="produto-gallery">
+          {% for img in imagens %}
+            {% if img.file_url %}
+              <a href="{{ img.file_url }}" target="_blank" class="produto-gallery-item">
+                <img src="{{ img.file_url }}" alt="{{ img.nome_original }}">
+              </a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if videos %}
+        <h4>Vídeos</h4>
+
+        <div class="produto-video-list">
+          {% for video in videos %}
+            <div class="produto-video-card">
+              {% if video.file_url %}
+                <video controls preload="metadata">
+                  <source src="{{ video.file_url }}" type="{{ video.mime_type|default:'video/mp4' }}">
+                  Seu navegador não suporta vídeo.
+                </video>
+              {% endif %}
+              <small>{{ video.nome_original }}</small>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if documentos %}
+        <h4>Documentos</h4>
+
+        <div class="produto-doc-list">
+          {% for doc in documentos %}
+            <a href="{{ doc.file_url|default:'#' }}" target="_blank">
+              📄 {{ doc.nome_original }}
+            </a>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if not imagens and not videos and not documentos %}
+        <div class="produto-empty-media">
+          Nenhuma imagem, vídeo ou documento cadastrado para este produto.
+        </div>
+      {% endif %}
+    </section>
+
+  </div>
+
+  <section class="panel">
+    <div class="detail-header">
+      <div>
+        <h3>CODs / Patrimônios Complementares</h3>
+        <p>
+          O código principal do equipamento já está no cadastro do produto.
+          Esta área pode ser usada para controles adicionais, série ou patrimônio interno.
+        </p>
+      </div>
+
+      <a class="btn-primary" href="{% url 'produtos:patrimonio_create' produto.id %}">
+        Novo COD
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>COD</th>
+            <th>Série</th>
+            <th>Status</th>
+            <th>Localização</th>
+            <th>Observações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for x in patrimonios %}
+            <tr>
+              <td>{{ x.cod_patrimonio }}</td>
+              <td>{{ x.numero_serie|default:'—' }}</td>
+              <td><span class="badge">{{ x.status }}</span></td>
+              <td>{{ x.localizacao|default:'—' }}</td>
+              <td>{{ x.observacoes|default:'—' }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5">Nenhum patrimônio complementar cadastrado.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h3>Vínculos Operacionais de Estoque</h3>
+    <p>Histórico de vínculos deste equipamento em orçamentos e operações de estoque.</p>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>COD</th>
+            <th>Status</th>
+            <th>Orçamento</th>
+            <th>Item</th>
+            <th>Qtd</th>
+            <th>Observações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for x in estoque_vinculos %}
+            <tr>
+              <td>{{ x.cod_patrimonio }}</td>
+              <td><span class="badge">{{ x.status }}</span></td>
+              <td>
+                {% if x.orcamento %}
+                  {{ x.orcamento.codigo }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>
+                {% if x.item %}
+                  {{ x.item.equipamento }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+              <td>{{ x.quantidade }}</td>
+              <td>{{ x.observacoes|default:'—' }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6">Nenhum vínculo operacional encontrado para este produto.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+{% endblock %}

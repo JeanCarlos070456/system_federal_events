@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="financeiro-form-page">
+
+  <div class="panel detail-header">
+    <div>
+      <span class="page-kicker">Gestão financeira</span>
+      <h2>Lançar Pagamento</h2>
+      <p>Registre pagamentos vinculados aos orçamentos e atualize automaticamente o status financeiro.</p>
+    </div>
+
+    <div class="inline-actions">
+      <a href="{% url 'financeiro:index' %}" class="btn-secondary">
+        Voltar
+      </a>
+    </div>
+  </div>
+
+  <div class="panel produto-form-panel">
+    <form method="post" class="form-grid">
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert-error" style="grid-column: 1 / -1;">
+          {% for error in form.non_field_errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <p style="grid-column: 1 / -1;">
+        <label for="{{ form.orcamento.id_for_label }}">
+          {{ form.orcamento.label }}
+        </label>
+        {{ form.orcamento }}
+        {% for error in form.orcamento.errors %}
+          <span class="field-error">{{ error }}</span>
+        {% endfor %}
+      </p>
+
+      <p>
+        <label for="{{ form.valor.id_for_label }}">
+          {{ form.valor.label }}
+        </label>
+        {{ form.valor }}
+        {% for error in form.valor.errors %}
+          <span class="field-error">{{ error }}</span>
+        {% endfor %}
+      </p>
+
+      <p>
+        <label for="{{ form.forma_pagamento.id_for_label }}">
+          {{ form.forma_pagamento.label }}
+        </label>
+        {{ form.forma_pagamento }}
+        {% for error in form.forma_pagamento.errors %}
+          <span class="field-error">{{ error }}</span>
+        {% endfor %}
+      </p>
+
+      <p>
+        <label for="{{ form.data_pagamento.id_for_label }}">
+          {{ form.data_pagamento.label }}
+        </label>
+        {{ form.data_pagamento }}
+        {% for error in form.data_pagamento.errors %}
+          <span class="field-error">{{ error }}</span>
+        {% endfor %}
+      </p>
+
+      <p>
+        <label for="{{ form.descricao.id_for_label }}">
+          {{ form.descricao.label }}
+        </label>
+        {{ form.descricao }}
+        {% for error in form.descricao.errors %}
+          <span class="field-error">{{ error }}</span>
+        {% endfor %}
+      </p>
+
+      <p style="grid-column: 1 / -1;">
+        <label for="{{ form.comprovante_url.id_for_label }}">
+          {{ form.comprovante_url.label }}
+        </label>
+        {{ form.comprovante_url }}
+        {% for error in form.comprovante_url.errors %}
+          <span class="field-error">{{ error }}</span>
+        {% endfor %}
+      </p>
+
+      <p style="grid-column: 1 / -1;">
+        <label for="{{ form.observacoes.id_for_label }}">
+          {{ form.observacoes.label }}
+        </label>
+        {{ form.observacoes }}
+        {% for error in form.observacoes.errors %}
+          <span class="field-error">{{ error }}</span>
+        {% endfor %}
+      </p>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">
+          Salvar pagamento
+        </button>
+
+        <a href="{% url 'financeiro:index' %}" class="btn-secondary">
+          Cancelar
+        </a>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

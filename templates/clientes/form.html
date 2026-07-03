@@ -1,0 +1,452 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<form method="post" class="panel cliente-form-panel" novalidate>
+  {% csrf_token %}
+
+  <div class="cliente-form-header">
+    <div>
+      <h2>{{ page_title }}</h2>
+      <p>
+        Cadastre clientes, contatos, documentos e dados fiscais usados nos orçamentos.
+      </p>
+    </div>
+
+    <div class="inline-actions">
+      <a class="btn-secondary" href="{% url 'clientes:index' %}">Voltar</a>
+      <button class="btn-primary" type="submit">Salvar Cliente</button>
+    </div>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-error">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <div class="cliente-cnpj-panel">
+    <div>
+      <h3>Consulta automática por CNPJ</h3>
+      <p>
+        Informe o CNPJ e clique em buscar para preencher razão social, contatos e endereço automaticamente.
+      </p>
+    </div>
+
+    <div class="cliente-cnpj-actions">
+      <button
+        type="button"
+        class="btn-secondary"
+        id="buscarCnpjBtn"
+        data-url="{% url 'clientes:buscar_cnpj' %}"
+      >
+        Buscar CNPJ
+      </button>
+    </div>
+
+    <div class="cliente-cnpj-status" id="cnpjLookupStatus">
+      Aguardando CNPJ para consulta.
+    </div>
+
+    <div class="cliente-logo-preview" id="clienteLogoPreview" hidden>
+      <div class="cliente-logo-box">
+        <span id="clienteLogoInitials">FE</span>
+        <img id="clienteLogoImg" alt="Logo da empresa" hidden>
+      </div>
+
+      <div>
+        <strong id="clienteLogoTitle">Logo da empresa</strong>
+        <small id="clienteLogoText">
+          A consulta pública de CNPJ normalmente não retorna logo oficial.
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-grid cliente-form-grid">
+    <p>
+      <label for="{{ form.nome.id_for_label }}">Nome completo ou razão social</label>
+      {{ form.nome }}
+      {% if form.nome.errors %}<span class="field-error">{{ form.nome.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.tipo_pessoa.id_for_label }}">Tipo de pessoa</label>
+      {{ form.tipo_pessoa }}
+      {% if form.tipo_pessoa.errors %}<span class="field-error">{{ form.tipo_pessoa.errors }}</span>{% endif %}
+    </p>
+
+    <div class="cliente-documento-field">
+      <label for="{{ form.documento.id_for_label }}">CPF/CNPJ</label>
+
+      <div class="cliente-documento-row">
+        {{ form.documento }}
+
+        <button
+          type="button"
+          class="btn-secondary cliente-documento-search"
+          id="buscarCnpjInlineBtn"
+          title="Buscar dados do CNPJ"
+        >
+          🔎
+        </button>
+      </div>
+
+      {% if form.documento.errors %}
+        <span class="field-error">{{ form.documento.errors }}</span>
+      {% endif %}
+    </div>
+
+    <p>
+      <label for="{{ form.inscricao_estadual.id_for_label }}">Inscrição estadual</label>
+      {{ form.inscricao_estadual }}
+      {% if form.inscricao_estadual.errors %}<span class="field-error">{{ form.inscricao_estadual.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.responsavel_nome.id_for_label }}">Responsável</label>
+      {{ form.responsavel_nome }}
+      {% if form.responsavel_nome.errors %}<span class="field-error">{{ form.responsavel_nome.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.responsavel_cargo.id_for_label }}">Cargo do responsável</label>
+      {{ form.responsavel_cargo }}
+      {% if form.responsavel_cargo.errors %}<span class="field-error">{{ form.responsavel_cargo.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.telefone.id_for_label }}">Telefone</label>
+      {{ form.telefone }}
+      {% if form.telefone.errors %}<span class="field-error">{{ form.telefone.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.whatsapp.id_for_label }}">WhatsApp</label>
+      {{ form.whatsapp }}
+      {% if form.whatsapp.errors %}<span class="field-error">{{ form.whatsapp.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.email.id_for_label }}">E-mail</label>
+      {{ form.email }}
+      {% if form.email.errors %}<span class="field-error">{{ form.email.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.cep.id_for_label }}">CEP</label>
+      {{ form.cep }}
+      {% if form.cep.errors %}<span class="field-error">{{ form.cep.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.endereco.id_for_label }}">Endereço</label>
+      {{ form.endereco }}
+      {% if form.endereco.errors %}<span class="field-error">{{ form.endereco.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.numero.id_for_label }}">Número</label>
+      {{ form.numero }}
+      {% if form.numero.errors %}<span class="field-error">{{ form.numero.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.complemento.id_for_label }}">Complemento</label>
+      {{ form.complemento }}
+      {% if form.complemento.errors %}<span class="field-error">{{ form.complemento.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.bairro.id_for_label }}">Bairro</label>
+      {{ form.bairro }}
+      {% if form.bairro.errors %}<span class="field-error">{{ form.bairro.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.cidade.id_for_label }}">Cidade</label>
+      {{ form.cidade }}
+      {% if form.cidade.errors %}<span class="field-error">{{ form.cidade.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.uf.id_for_label }}">UF</label>
+      {{ form.uf }}
+      {% if form.uf.errors %}<span class="field-error">{{ form.uf.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.status.id_for_label }}">Status do cliente</label>
+      {{ form.status }}
+      {% if form.status.errors %}<span class="field-error">{{ form.status.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.origem.id_for_label }}">Origem</label>
+      {{ form.origem }}
+      {% if form.origem.errors %}<span class="field-error">{{ form.origem.errors }}</span>{% endif %}
+    </p>
+
+    <p class="cliente-form-wide">
+      <label for="{{ form.observacoes.id_for_label }}">Observações</label>
+      {{ form.observacoes }}
+      {% if form.observacoes.errors %}<span class="field-error">{{ form.observacoes.errors }}</span>{% endif %}
+    </p>
+  </div>
+
+  <div class="form-actions">
+    <a class="btn-secondary" href="{% url 'clientes:index' %}">Cancelar</a>
+    <button class="btn-primary" type="submit">Salvar Cliente</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const buscarBtn = document.getElementById("buscarCnpjBtn");
+  const buscarInlineBtn = document.getElementById("buscarCnpjInlineBtn");
+  const statusBox = document.getElementById("cnpjLookupStatus");
+
+  const logoPreview = document.getElementById("clienteLogoPreview");
+  const logoImg = document.getElementById("clienteLogoImg");
+  const logoInitials = document.getElementById("clienteLogoInitials");
+  const logoTitle = document.getElementById("clienteLogoTitle");
+  const logoText = document.getElementById("clienteLogoText");
+
+  function onlyDigits(value) {
+    return (value || "").replace(/\D/g, "");
+  }
+
+  function getField(id) {
+    return document.getElementById(id);
+  }
+
+  function setStatus(message, type) {
+    if (!statusBox) return;
+
+    statusBox.textContent = message || "";
+    statusBox.classList.remove("success", "error", "warning");
+
+    if (type) {
+      statusBox.classList.add(type);
+    }
+  }
+
+  function setField(id, value) {
+    const field = getField(id);
+
+    if (!field) return;
+
+    field.value = value || "";
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  function formatCnpj(value) {
+    const digits = onlyDigits(value).slice(0, 14);
+
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return digits.replace(/^(\d{2})(\d+)/, "$1.$2");
+    if (digits.length <= 8) return digits.replace(/^(\d{2})(\d{3})(\d+)/, "$1.$2.$3");
+    if (digits.length <= 12) return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d+)/, "$1.$2.$3/$4");
+
+    return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/, "$1.$2.$3/$4-$5");
+  }
+
+  function formatCep(value) {
+    const digits = onlyDigits(value).slice(0, 8);
+
+    if (digits.length <= 5) return digits;
+
+    return digits.replace(/^(\d{5})(\d{0,3}).*/, "$1-$2");
+  }
+
+  function formatPhone(value) {
+    const digits = onlyDigits(value).slice(0, 11);
+
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 6) return digits.replace(/^(\d{2})(\d+)/, "($1) $2");
+    if (digits.length <= 10) return digits.replace(/^(\d{2})(\d{4})(\d+)/, "($1) $2-$3");
+
+    return digits.replace(/^(\d{2})(\d{5})(\d+)/, "($1) $2-$3");
+  }
+
+  function initialsFromName(name) {
+    const parts = (name || "FE")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2);
+
+    const initials = parts.map((part) => part[0]).join("").toUpperCase();
+
+    return initials || "FE";
+  }
+
+  function updateLogoPreview(data) {
+    if (!logoPreview) return;
+
+    logoPreview.hidden = false;
+
+    const name = data.nome_fantasia || data.nome || "Cliente";
+    const logoUrl = data.logo_url || "";
+
+    if (logoTitle) {
+      logoTitle.textContent = name;
+    }
+
+    if (logoUrl && logoImg) {
+      logoImg.src = logoUrl;
+      logoImg.hidden = false;
+
+      if (logoInitials) {
+        logoInitials.hidden = true;
+      }
+
+      if (logoText) {
+        logoText.textContent = "Logo sugerida automaticamente. Confirme visualmente antes de usar.";
+      }
+
+      return;
+    }
+
+    if (logoImg) {
+      logoImg.hidden = true;
+      logoImg.removeAttribute("src");
+    }
+
+    if (logoInitials) {
+      logoInitials.hidden = false;
+      logoInitials.textContent = initialsFromName(name);
+    }
+
+    if (logoText) {
+      logoText.textContent = "A consulta pública não retornou logo oficial. O sistema exibiu apenas uma identificação visual temporária.";
+    }
+  }
+
+  function applyData(data) {
+    setField("id_nome", data.nome);
+    setField("id_tipo_pessoa", data.tipo_pessoa || "juridica");
+    setField("id_documento", data.documento);
+    setField("id_inscricao_estadual", data.inscricao_estadual);
+    setField("id_responsavel_nome", data.responsavel_nome);
+    setField("id_responsavel_cargo", data.responsavel_cargo);
+    setField("id_telefone", data.telefone);
+    setField("id_whatsapp", data.whatsapp);
+    setField("id_email", data.email);
+    setField("id_cep", data.cep);
+    setField("id_endereco", data.endereco);
+    setField("id_numero", data.numero);
+    setField("id_complemento", data.complemento);
+    setField("id_bairro", data.bairro);
+    setField("id_cidade", data.cidade);
+    setField("id_uf", data.uf);
+    setField("id_status", data.status || "Ativo");
+    setField("id_origem", data.origem || "BrasilAPI CNPJ");
+
+    if (data.observacoes) {
+      setField("id_observacoes", data.observacoes);
+    }
+
+    updateLogoPreview(data);
+  }
+
+  async function buscarCnpj() {
+    const documentoField = getField("id_documento");
+
+    if (!documentoField) {
+      setStatus("Campo de CPF/CNPJ não encontrado no formulário.", "error");
+      return;
+    }
+
+    const cnpj = onlyDigits(documentoField.value);
+
+    if (cnpj.length !== 14) {
+      setStatus("Digite um CNPJ válido com 14 dígitos antes de buscar.", "error");
+      documentoField.focus();
+      return;
+    }
+
+    const url = buscarBtn.getAttribute("data-url") + "?cnpj=" + encodeURIComponent(cnpj);
+
+    setStatus("Consultando CNPJ na BrasilAPI...", "warning");
+
+    if (buscarBtn) buscarBtn.disabled = true;
+    if (buscarInlineBtn) buscarInlineBtn.disabled = true;
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.message || "Não foi possível consultar esse CNPJ.");
+      }
+
+      applyData(payload.data || {});
+      setStatus("Dados do CNPJ preenchidos com sucesso.", "success");
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message || "Erro ao buscar CNPJ.", "error");
+    } finally {
+      if (buscarBtn) buscarBtn.disabled = false;
+      if (buscarInlineBtn) buscarInlineBtn.disabled = false;
+    }
+  }
+
+  const documentoField = getField("id_documento");
+  const cepField = getField("id_cep");
+  const telefoneField = getField("id_telefone");
+  const whatsappField = getField("id_whatsapp");
+  const ufField = getField("id_uf");
+
+  if (documentoField) {
+    documentoField.addEventListener("input", function () {
+      const digits = onlyDigits(this.value);
+
+      if (digits.length > 11) {
+        this.value = formatCnpj(digits);
+      }
+    });
+  }
+
+  if (cepField) {
+    cepField.addEventListener("input", function () {
+      this.value = formatCep(this.value);
+    });
+  }
+
+  if (telefoneField) {
+    telefoneField.addEventListener("input", function () {
+      this.value = formatPhone(this.value);
+    });
+  }
+
+  if (whatsappField) {
+    whatsappField.addEventListener("input", function () {
+      this.value = formatPhone(this.value);
+    });
+  }
+
+  if (ufField) {
+    ufField.addEventListener("input", function () {
+      this.value = this.value.toUpperCase().slice(0, 2);
+    });
+  }
+
+  if (buscarBtn) {
+    buscarBtn.addEventListener("click", buscarCnpj);
+  }
+
+  if (buscarInlineBtn) {
+    buscarInlineBtn.addEventListener("click", buscarCnpj);
+  }
+});
+</script>
+{% endblock %}

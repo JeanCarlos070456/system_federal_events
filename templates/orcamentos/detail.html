@@ -1,0 +1,588 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="orcamento-detail-page">
+
+  <div class="detail-header panel">
+    <div>
+      <h2>{{ orcamento.codigo }}</h2>
+      <p>
+        {{ orcamento.evento_nome }} · {{ orcamento.cliente_nome|default:'Sem cliente' }}
+      </p>
+
+      <div class="orcamento-status-inline">
+        {% if status_visual == "Concluído" %}
+          <span class="badge-status badge-status-concluido">Concluído</span>
+        {% else %}
+          <span class="badge-status badge-status-analise">Em análise</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="inline-actions">
+      <a class="btn-secondary" href="{% url 'orcamentos:update' orcamento.id %}">
+        Editar cabeçalho
+      </a>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <small>Total</small>
+      <strong>R$ {{ orcamento.valor_total|floatformat:2 }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Desconto</small>
+      <strong>R$ {{ orcamento.valor_desconto|floatformat:2 }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Caução</small>
+      <strong>R$ {{ orcamento.valor_caucao|floatformat:2 }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Final</small>
+      <strong>R$ {{ orcamento.valor_final|floatformat:2 }}</strong>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Adicionar ambiente</h3>
+
+    <form method="post" action="{% url 'orcamentos:add_ambiente' orcamento.id %}" class="form-grid compact">
+      {% csrf_token %}
+
+      <p>
+        <label for="{{ ambiente_form.tipo.id_for_label }}">Tipo</label>
+        {{ ambiente_form.tipo }}
+      </p>
+
+      <p>
+        <label for="{{ ambiente_form.nome.id_for_label }}">Nome do ambiente</label>
+        {{ ambiente_form.nome }}
+      </p>
+
+      <p>
+        <label for="{{ ambiente_form.ordem.id_for_label }}">Ordem</label>
+        {{ ambiente_form.ordem }}
+      </p>
+
+      <p>
+        <label for="{{ ambiente_form.observacoes.id_for_label }}">Observações</label>
+        {{ ambiente_form.observacoes }}
+      </p>
+
+      <button class="btn-primary" type="submit">
+        Adicionar ambiente
+      </button>
+    </form>
+  </div>
+
+  {% for amb in orcamento.ambientes.all %}
+    <div class="panel orcamento-ambiente-card">
+      <div class="orcamento-ambiente-header">
+        <div>
+          <h3>
+            {{ amb.nome }}
+            <small>{{ amb.get_tipo_display }}</small>
+          </h3>
+
+          {% if amb.observacoes %}
+            <p>{{ amb.observacoes }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Equipamento</th>
+              <th>Qtd</th>
+              <th>Dias</th>
+              <th>Diária</th>
+              <th>Desconto</th>
+              <th>Total</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for item in amb.itens.all %}
+              <tr>
+                <td>
+                  <strong>{{ item.equipamento }}</strong>
+                  {% if item.descricao %}
+                    <br>
+                    <small>{{ item.descricao }}</small>
+                  {% endif %}
+                </td>
+                <td>{{ item.quantidade }}</td>
+                <td>{{ item.dias_uso }}</td>
+                <td>R$ {{ item.valor_diaria|floatformat:2 }}</td>
+                <td>R$ {{ item.desconto|floatformat:2 }}</td>
+                <td>R$ {{ item.valor_total|floatformat:2 }}</td>
+                <td>
+                  <form method="post" action="{% url 'orcamentos:delete_item' orcamento.id item.id %}">
+                    {% csrf_token %}
+                    <button class="btn-link-danger" type="submit">
+                      Remover
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7">Sem itens neste ambiente.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <details class="orcamento-item-details">
+        <summary>Adicionar item neste ambiente</summary>
+
+        <form
+          method="post"
+          action="{% url 'orcamentos:add_item' orcamento.id amb.id %}"
+          class="form-grid compact orcamento-item-form"
+          data-autocomplete-url="{% url 'orcamentos:produtos_autocomplete' %}"
+        >
+          {% csrf_token %}
+
+          <div class="orcamento-autocomplete-field">
+            <label>Equipamento</label>
+
+            <input
+              type="text"
+              name="equipamento"
+              class="orcamento-equipment-input"
+              placeholder="Digite o nome do produto/equipamento"
+              autocomplete="off"
+              required
+            >
+
+            <div class="orcamento-suggestions" hidden></div>
+
+            <small>
+              Selecione o tipo de equipamento. O código físico será vinculado depois no Estoque.
+            </small>
+          </div>
+
+          <p>
+            <label>Descrição</label>
+            <textarea name="descricao" rows="2" class="orcamento-descricao-input"></textarea>
+          </p>
+
+          <p>
+            <label>Quantidade</label>
+            <input type="number" name="quantidade" min="1" value="1" required>
+          </p>
+
+          <p>
+            <label>Dias de uso</label>
+            <input type="number" name="dias_uso" min="1" value="1" required>
+          </p>
+
+          <p>
+            <label>Valor diária</label>
+            <input type="text" name="valor_diaria" class="orcamento-valor-diaria-input" value="0.00">
+          </p>
+
+          <p>
+            <label>Desconto</label>
+            <input type="text" name="desconto" value="0.00">
+          </p>
+
+          <p>
+            <label>Ordem</label>
+            <input type="number" name="ordem" value="0">
+          </p>
+
+          <input type="hidden" name="catalogo_descricao" class="orcamento-catalogo-descricao-input">
+          <input type="hidden" name="catalogo_valor_diaria" class="orcamento-catalogo-valor-input">
+
+          <button class="btn-primary" type="submit">
+            Adicionar item
+          </button>
+        </form>
+      </details>
+    </div>
+  {% empty %}
+    <div class="panel">
+      <p>Nenhum ambiente criado.</p>
+    </div>
+  {% endfor %}
+
+  <div class="orcamento-download-panel panel">
+    <div>
+      <h3>Finalizar Documentos</h3>
+      <p>
+        Baixe o orçamento comercial ou gere o contrato com cláusulas editáveis.
+      </p>
+    </div>
+
+    <div class="orcamento-download-actions">
+      <a class="btn-primary" href="{% url 'orcamentos:baixar_pdf' orcamento.id %}">
+        Baixar Orçamento
+      </a>
+
+      <button type="button" class="btn-secondary" id="abrirContratoModal">
+        Baixar Contrato
+      </button>
+    </div>
+  </div>
+
+  <div class="contrato-modal" id="contratoModal" aria-hidden="true">
+    <div class="contrato-modal-backdrop" data-close-contrato></div>
+
+    <div class="contrato-modal-card">
+      <div class="contrato-modal-header">
+        <div>
+          <h3>Contrato do Orçamento {{ orcamento.codigo }}</h3>
+          <p>Edite as cláusulas padrão antes de baixar o contrato.</p>
+        </div>
+
+        <button type="button" class="scanner-close" data-close-contrato>×</button>
+      </div>
+
+      <form method="post" action="{% url 'orcamentos:baixar_contrato' orcamento.id %}" id="contratoForm">
+        {% csrf_token %}
+
+        <div id="clausulasContainer" class="clausulas-container">
+          {% for clausula in contrato_clausulas_padrao %}
+            <div class="clausula-card">
+              <div class="clausula-card-header">
+                <h4>Cláusula</h4>
+              </div>
+
+              <div class="clausula-fields">
+                <label>Título da cláusula</label>
+                <input
+                  type="text"
+                  name="clausula_titulo[]"
+                  value="{{ clausula.titulo }}"
+                  class="clausula-input"
+                  placeholder="Ex: CLÁUSULA 1 – OBJETO"
+                >
+
+                <label>Conteúdo</label>
+                <textarea
+                  name="clausula_conteudo[]"
+                  rows="5"
+                  class="clausula-textarea"
+                  placeholder="Digite o conteúdo da cláusula"
+                >{{ clausula.conteudo }}</textarea>
+              </div>
+
+              <div class="clausula-actions">
+                <button type="button" class="btn-danger-outline remover-clausula-btn">
+                  Excluir cláusula
+                </button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="clausulas-toolbar clausulas-toolbar-bottom">
+          <button type="button" class="btn-secondary" id="adicionarClausulaBtn">
+            + Adicionar cláusula
+          </button>
+        </div>
+
+        <label class="contrato-check">
+          <input type="checkbox" name="assinado_empresa" value="1">
+          <span>
+            Assinado — incluir assinatura da empresa no contrato
+            <small>Arquivo esperado: static/img/assinatura.png</small>
+          </span>
+        </label>
+
+        <div class="contrato-modal-actions">
+          <button type="button" class="btn-secondary" data-close-contrato>
+            Cancelar
+          </button>
+
+          <button type="submit" class="btn-primary">
+            Baixar Contrato
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const debounceMap = new WeakMap();
+
+  function normalizeText(value) {
+    return (value || "").trim();
+  }
+
+  function closeAllSuggestions(exceptBox) {
+    document.querySelectorAll(".orcamento-suggestions").forEach(function (box) {
+      if (box !== exceptBox) {
+        box.hidden = true;
+        box.innerHTML = "";
+      }
+    });
+  }
+
+  function setSuggestionBox(box, items, form) {
+    box.innerHTML = "";
+
+    if (!items || items.length === 0) {
+      box.innerHTML = '<div class="orcamento-suggestion-empty">Nenhum equipamento encontrado.</div>';
+      box.hidden = false;
+      return;
+    }
+
+    items.forEach(function (item) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "orcamento-suggestion-item";
+
+      const descricao = item.descricao ? item.descricao : "Sem categoria/marca/modelo cadastrado";
+
+      button.innerHTML = `
+        <strong>${item.nome || ""}</strong>
+        <small>${descricao}</small>
+      `;
+
+      button.addEventListener("click", function () {
+        const equipamentoInput = form.querySelector(".orcamento-equipment-input");
+        const descricaoInput = form.querySelector(".orcamento-descricao-input");
+        const valorDiariaInput = form.querySelector(".orcamento-valor-diaria-input");
+        const catalogoDescricaoInput = form.querySelector(".orcamento-catalogo-descricao-input");
+        const catalogoValorInput = form.querySelector(".orcamento-catalogo-valor-input");
+
+        if (equipamentoInput) {
+          equipamentoInput.value = item.nome || "";
+        }
+
+        if (descricaoInput && !normalizeText(descricaoInput.value)) {
+          descricaoInput.value = item.descricao || "";
+        }
+
+        if (valorDiariaInput && (!normalizeText(valorDiariaInput.value) || valorDiariaInput.value === "0.00" || valorDiariaInput.value === "0,00")) {
+          valorDiariaInput.value = item.valor_diaria || "0.00";
+        }
+
+        if (catalogoDescricaoInput) {
+          catalogoDescricaoInput.value = item.descricao || "";
+        }
+
+        if (catalogoValorInput) {
+          catalogoValorInput.value = item.valor_diaria || "0.00";
+        }
+
+        box.hidden = true;
+        box.innerHTML = "";
+      });
+
+      box.appendChild(button);
+    });
+
+    box.hidden = false;
+  }
+
+  async function fetchSuggestions(form, query) {
+    const urlBase = form.getAttribute("data-autocomplete-url");
+    const box = form.querySelector(".orcamento-suggestions");
+
+    if (!urlBase || !box) return;
+
+    if (query.length < 2) {
+      box.hidden = true;
+      box.innerHTML = "";
+      return;
+    }
+
+    try {
+      const url = urlBase + "?q=" + encodeURIComponent(query);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+
+      const payload = await response.json();
+
+      setSuggestionBox(box, payload.results || [], form);
+    } catch (error) {
+      console.error(error);
+      box.innerHTML = '<div class="orcamento-suggestion-empty">Erro ao buscar equipamentos.</div>';
+      box.hidden = false;
+    }
+  }
+
+  document.querySelectorAll(".orcamento-item-form").forEach(function (form) {
+    const input = form.querySelector(".orcamento-equipment-input");
+    const box = form.querySelector(".orcamento-suggestions");
+
+    if (!input || !box) return;
+
+    input.addEventListener("input", function () {
+      const query = normalizeText(input.value);
+
+      closeAllSuggestions(box);
+
+      if (debounceMap.get(input)) {
+        clearTimeout(debounceMap.get(input));
+      }
+
+      const timer = setTimeout(function () {
+        fetchSuggestions(form, query);
+      }, 260);
+
+      debounceMap.set(input, timer);
+    });
+
+    input.addEventListener("focus", function () {
+      const query = normalizeText(input.value);
+
+      if (query.length >= 2) {
+        fetchSuggestions(form, query);
+      }
+    });
+  });
+
+  document.addEventListener("click", function (event) {
+    if (!event.target.closest(".orcamento-autocomplete-field")) {
+      closeAllSuggestions(null);
+    }
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      closeAllSuggestions(null);
+    }
+  });
+
+  const modal = document.getElementById("contratoModal");
+  const abrirBtn = document.getElementById("abrirContratoModal");
+  const clausulasContainer = document.getElementById("clausulasContainer");
+  const adicionarClausulaBtn = document.getElementById("adicionarClausulaBtn");
+
+  function abrirContratoModal() {
+    if (!modal) return;
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function fecharContratoModal() {
+    if (!modal) return;
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  function bindRemoverClausula(scope) {
+    scope.querySelectorAll(".remover-clausula-btn").forEach(function (button) {
+      button.onclick = function () {
+        const cards = clausulasContainer.querySelectorAll(".clausula-card");
+
+        if (cards.length <= 1) {
+          alert("O contrato precisa ter pelo menos uma cláusula.");
+          return;
+        }
+
+        const card = button.closest(".clausula-card");
+        if (card) {
+          card.remove();
+        }
+      };
+    });
+  }
+
+  function criarCardClausula(titulo = "", conteudo = "") {
+    const card = document.createElement("div");
+    card.className = "clausula-card";
+
+    const header = document.createElement("div");
+    header.className = "clausula-card-header";
+
+    const h4 = document.createElement("h4");
+    h4.textContent = "Cláusula";
+
+    header.appendChild(h4);
+
+    const fields = document.createElement("div");
+    fields.className = "clausula-fields";
+
+    const tituloLabel = document.createElement("label");
+    tituloLabel.textContent = "Título da cláusula";
+
+    const tituloInput = document.createElement("input");
+    tituloInput.type = "text";
+    tituloInput.name = "clausula_titulo[]";
+    tituloInput.value = titulo || "";
+    tituloInput.className = "clausula-input";
+    tituloInput.placeholder = "Ex: CLÁUSULA 12 – DISPOSIÇÕES FINAIS";
+
+    const conteudoLabel = document.createElement("label");
+    conteudoLabel.textContent = "Conteúdo";
+
+    const conteudoTextarea = document.createElement("textarea");
+    conteudoTextarea.name = "clausula_conteudo[]";
+    conteudoTextarea.rows = 5;
+    conteudoTextarea.className = "clausula-textarea";
+    conteudoTextarea.placeholder = "Digite o conteúdo da cláusula";
+    conteudoTextarea.value = conteudo || "";
+
+    fields.appendChild(tituloLabel);
+    fields.appendChild(tituloInput);
+    fields.appendChild(conteudoLabel);
+    fields.appendChild(conteudoTextarea);
+
+    const actions = document.createElement("div");
+    actions.className = "clausula-actions";
+
+    const removerBtn = document.createElement("button");
+    removerBtn.type = "button";
+    removerBtn.className = "btn-danger-outline remover-clausula-btn";
+    removerBtn.textContent = "Excluir cláusula";
+
+    actions.appendChild(removerBtn);
+
+    card.appendChild(header);
+    card.appendChild(fields);
+    card.appendChild(actions);
+
+    clausulasContainer.appendChild(card);
+    bindRemoverClausula(card);
+
+    tituloInput.focus();
+  }
+
+  if (abrirBtn) {
+    abrirBtn.addEventListener("click", abrirContratoModal);
+  }
+
+  document.querySelectorAll("[data-close-contrato]").forEach(function (button) {
+    button.addEventListener("click", fecharContratoModal);
+  });
+
+  if (adicionarClausulaBtn) {
+    adicionarClausulaBtn.addEventListener("click", function () {
+      criarCardClausula("", "");
+    });
+  }
+
+  bindRemoverClausula(document);
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && modal && modal.classList.contains("open")) {
+      fecharContratoModal();
+    }
+  });
+});
+</script>
+{% endblock %}

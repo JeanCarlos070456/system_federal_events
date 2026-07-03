@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="panel">
+  <form method="post" class="form-grid">
+    {% csrf_token %}
+    {% for field in form %}
+      <label class="{% if field.field.widget.input_type == 'checkbox' %}check-label{% endif %}">{{ field.label }}{{ field }}</label>
+      {% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+    {% endfor %}
+    <div class="form-actions">
+      <button class="btn-primary" type="submit">Salvar</button>
+      <a class="btn-secondary" href="javascript:history.back()">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

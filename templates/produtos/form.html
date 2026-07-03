@@ -1,0 +1,746 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<form method="post" class="panel produto-form-panel" enctype="multipart/form-data" novalidate>
+  {% csrf_token %}
+
+  <div class="produto-form-header">
+    <div>
+      <h2>{{ page_title }}</h2>
+      <p>
+        Cadastre uma unidade física do equipamento. O código escaneado será o identificador único desse item.
+      </p>
+    </div>
+
+    <div class="inline-actions">
+      <a class="btn-secondary" href="{% url 'produtos:index' %}">Voltar</a>
+      <button class="btn-primary" type="submit">Salvar Produto</button>
+    </div>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="alert alert-error">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <div class="produto-unit-alert">
+    <strong>Unidade física única</strong>
+    <span>
+      Cada produto cadastrado representa apenas 1 equipamento físico.
+      As quantidades serão definidas automaticamente pelo sistema.
+    </span>
+  </div>
+
+  <div class="produto-photo-panel">
+    <div>
+      <h3>Foto do Produto</h3>
+      <p>
+        Tire uma foto pela câmera ou selecione uma imagem do dispositivo.
+        A imagem será salva no bucket e vinculada ao código do produto.
+      </p>
+    </div>
+
+    <div class="produto-photo-actions">
+      <label class="btn-secondary produto-file-label">
+        Selecionar imagem
+        <input
+          type="file"
+          name="foto_produto"
+          id="fotoProdutoInput"
+          accept="image/*"
+          capture="environment"
+        >
+      </label>
+
+      <button type="button" class="btn-secondary" id="abrirCameraProduto">
+        Tirar foto pela câmera
+      </button>
+
+      <button type="button" class="btn-danger" id="limparFotoProduto">
+        Limpar foto
+      </button>
+    </div>
+
+    <input type="hidden" name="foto_camera_base64" id="fotoCameraBase64">
+
+    <div class="produto-photo-preview" id="produtoPhotoPreview">
+      <img src="{% static 'img/logo_vazada.png' %}" alt="Prévia da foto" id="produtoPhotoPreviewImg">
+      <span id="produtoPhotoPreviewText">Nenhuma foto selecionada.</span>
+    </div>
+  </div>
+
+  <div class="form-grid">
+    <div class="scanner-field">
+      <label for="{{ form.codigo.id_for_label }}">Código único do equipamento</label>
+
+      {{ form.codigo }}
+
+      {% if form.codigo.errors %}
+        <div class="field-error">{{ form.codigo.errors }}</div>
+      {% endif %}
+
+      <div class="scanner-actions">
+        <button
+          type="button"
+          class="btn-secondary scanner-btn"
+          data-scanner-mode="qr"
+          data-target-input="id_codigo"
+        >
+          Escanear QR Code
+        </button>
+
+        <button
+          type="button"
+          class="btn-secondary scanner-btn"
+          data-scanner-mode="barcode"
+          data-target-input="id_codigo"
+        >
+          Escanear Código de Barras
+        </button>
+      </div>
+
+      <small class="scanner-help">
+        A leitura preencherá automaticamente o campo Código. Esse código identifica uma unidade física única.
+      </small>
+    </div>
+
+    <p>
+      <label for="{{ form.nome.id_for_label }}">Nome</label>
+      {{ form.nome }}
+      {% if form.nome.errors %}<span class="field-error">{{ form.nome.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.categoria.id_for_label }}">Categoria</label>
+      {{ form.categoria }}
+      {% if form.categoria.errors %}<span class="field-error">{{ form.categoria.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.subcategoria.id_for_label }}">Subcategoria</label>
+      {{ form.subcategoria }}
+      {% if form.subcategoria.errors %}<span class="field-error">{{ form.subcategoria.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.marca.id_for_label }}">Marca</label>
+      {{ form.marca }}
+      {% if form.marca.errors %}<span class="field-error">{{ form.marca.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.modelo.id_for_label }}">Modelo</label>
+      {{ form.modelo }}
+      {% if form.modelo.errors %}<span class="field-error">{{ form.modelo.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.descricao.id_for_label }}">Descrição</label>
+      {{ form.descricao }}
+      {% if form.descricao.errors %}<span class="field-error">{{ form.descricao.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.especificacoes.id_for_label }}">Especificações</label>
+      {{ form.especificacoes }}
+      {% if form.especificacoes.errors %}<span class="field-error">{{ form.especificacoes.errors }}</span>{% endif %}
+    </p>
+
+    {% if can_manage_values %}
+      <p>
+        <label for="{{ form.valor_diaria.id_for_label }}">Valor diária</label>
+        {{ form.valor_diaria }}
+        {% if form.valor_diaria.errors %}<span class="field-error">{{ form.valor_diaria.errors }}</span>{% endif %}
+      </p>
+
+      <p>
+        <label for="{{ form.valor_semanal.id_for_label }}">Valor semanal</label>
+        {{ form.valor_semanal }}
+        {% if form.valor_semanal.errors %}<span class="field-error">{{ form.valor_semanal.errors }}</span>{% endif %}
+      </p>
+
+      <p>
+        <label for="{{ form.valor_mensal.id_for_label }}">Valor mensal</label>
+        {{ form.valor_mensal }}
+        {% if form.valor_mensal.errors %}<span class="field-error">{{ form.valor_mensal.errors }}</span>{% endif %}
+      </p>
+    {% endif %}
+
+    <p>
+      <label for="{{ form.status.id_for_label }}">Status</label>
+      {{ form.status }}
+      {% if form.status.errors %}<span class="field-error">{{ form.status.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.localizacao.id_for_label }}">Localização</label>
+      {{ form.localizacao }}
+      {% if form.localizacao.errors %}<span class="field-error">{{ form.localizacao.errors }}</span>{% endif %}
+    </p>
+
+    <p>
+      <label for="{{ form.observacoes.id_for_label }}">Observações</label>
+      {{ form.observacoes }}
+      {% if form.observacoes.errors %}<span class="field-error">{{ form.observacoes.errors }}</span>{% endif %}
+    </p>
+  </div>
+
+  <div class="form-actions">
+    <a class="btn-secondary" href="{% url 'produtos:index' %}">Cancelar</a>
+    <button class="btn-primary" type="submit">Salvar Produto</button>
+  </div>
+</form>
+
+<div class="scanner-modal" id="scannerModal" aria-hidden="true">
+  <div class="scanner-modal-backdrop" data-close-scanner></div>
+
+  <div class="scanner-modal-card">
+    <div class="scanner-modal-header">
+      <div>
+        <h3 id="scannerTitle">Scanner</h3>
+        <p id="scannerSubtitle">Aponte a câmera para o código.</p>
+      </div>
+
+      <button type="button" class="scanner-close" data-close-scanner>
+        ×
+      </button>
+    </div>
+
+    <div class="scanner-reader-wrap">
+      <video id="scannerVideo" muted playsinline></video>
+      <div class="scanner-frame"></div>
+    </div>
+
+    <div class="scanner-status" id="scannerStatus">
+      Aguardando câmera...
+    </div>
+
+    <div class="scanner-modal-actions">
+      <button type="button" class="btn-secondary" id="scannerSwitchCamera">
+        Trocar câmera
+      </button>
+
+      <button type="button" class="btn-danger" data-close-scanner>
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="produto-camera-modal" id="produtoCameraModal" aria-hidden="true">
+  <div class="produto-camera-backdrop" data-close-product-camera></div>
+
+  <div class="produto-camera-card">
+    <div class="scanner-modal-header">
+      <div>
+        <h3>Foto do Produto</h3>
+        <p>Enquadre o equipamento e clique em capturar.</p>
+      </div>
+
+      <button type="button" class="scanner-close" data-close-product-camera>
+        ×
+      </button>
+    </div>
+
+    <div class="produto-camera-video-wrap">
+      <video id="produtoCameraVideo" autoplay muted playsinline></video>
+      <canvas id="produtoCameraCanvas" hidden></canvas>
+    </div>
+
+    <div class="scanner-modal-actions">
+      <button type="button" class="btn-secondary" id="trocarCameraFoto">
+        Trocar câmera
+      </button>
+
+      <button type="button" class="btn-primary" id="capturarFotoProduto">
+        Capturar foto
+      </button>
+
+      <button type="button" class="btn-danger" data-close-product-camera>
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  let codeReader = null;
+  let selectedDeviceId = null;
+  let videoInputDevices = [];
+  let activeTargetInputId = null;
+  let activeScannerMode = "qr";
+
+  const modal = document.getElementById("scannerModal");
+  const video = document.getElementById("scannerVideo");
+  const statusEl = document.getElementById("scannerStatus");
+  const titleEl = document.getElementById("scannerTitle");
+  const subtitleEl = document.getElementById("scannerSubtitle");
+  const switchBtn = document.getElementById("scannerSwitchCamera");
+
+  function setStatus(message, type) {
+    if (!statusEl) return;
+
+    statusEl.textContent = message || "";
+    statusEl.classList.remove("success", "error", "warning");
+
+    if (type) {
+      statusEl.classList.add(type);
+    }
+  }
+
+  function openModal() {
+    if (!modal) return;
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeModal() {
+    stopScanner();
+
+    if (!modal) return;
+
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    activeTargetInputId = null;
+  }
+
+  function stopScanner() {
+    if (codeReader) {
+      try {
+        codeReader.reset();
+      } catch (error) {
+        console.warn("Erro ao parar scanner:", error);
+      }
+    }
+
+    if (video && video.srcObject) {
+      video.srcObject.getTracks().forEach(function (track) {
+        track.stop();
+      });
+
+      video.srcObject = null;
+    }
+  }
+
+  function allowedFormatsByMode(mode) {
+    const ZXing = window.ZXing;
+
+    if (!ZXing || !ZXing.BarcodeFormat) {
+      return null;
+    }
+
+    if (mode === "qr") {
+      return [ZXing.BarcodeFormat.QR_CODE];
+    }
+
+    return [
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.CODE_93,
+      ZXing.BarcodeFormat.CODABAR,
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.ITF,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E
+    ];
+  }
+
+  async function setupCodeReader(mode) {
+    const ZXing = window.ZXing;
+
+    if (!ZXing) {
+      throw new Error("Biblioteca de scanner não carregada.");
+    }
+
+    const hints = new Map();
+    const formats = allowedFormatsByMode(mode);
+
+    if (formats) {
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+    }
+
+    codeReader = new ZXing.BrowserMultiFormatReader(hints, 350);
+    videoInputDevices = await codeReader.listVideoInputDevices();
+
+    if (!videoInputDevices || videoInputDevices.length === 0) {
+      throw new Error("Nenhuma câmera encontrada neste dispositivo.");
+    }
+
+    if (!selectedDeviceId) {
+      const backCamera = videoInputDevices.find(function (device) {
+        return /back|rear|environment|traseira/i.test(device.label || "");
+      });
+
+      selectedDeviceId = backCamera ? backCamera.deviceId : videoInputDevices[0].deviceId;
+    }
+  }
+
+  async function startScanner(targetInputId, mode) {
+    activeTargetInputId = targetInputId;
+    activeScannerMode = mode || "qr";
+
+    stopScanner();
+    openModal();
+
+    if (titleEl) {
+      titleEl.textContent = activeScannerMode === "qr"
+        ? "Escanear QR Code"
+        : "Escanear Código de Barras";
+    }
+
+    if (subtitleEl) {
+      subtitleEl.textContent = activeScannerMode === "qr"
+        ? "Aponte a câmera para o QR Code do equipamento."
+        : "Aponte a câmera para o código de barras do equipamento.";
+    }
+
+    setStatus("Abrindo câmera...", "warning");
+
+    try {
+      await setupCodeReader(activeScannerMode);
+
+      setStatus("Câmera ativa. Aguardando leitura...", "warning");
+
+      await codeReader.decodeFromVideoDevice(
+        selectedDeviceId,
+        video,
+        function (result, error) {
+          if (result) {
+            const value = result.getText();
+            const targetInput = document.getElementById(activeTargetInputId);
+
+            if (targetInput) {
+              targetInput.value = value;
+              targetInput.dispatchEvent(new Event("input", { bubbles: true }));
+              targetInput.dispatchEvent(new Event("change", { bubbles: true }));
+              targetInput.focus();
+            }
+
+            setStatus("Código lido: " + value, "success");
+
+            setTimeout(function () {
+              closeModal();
+            }, 600);
+          }
+        }
+      );
+    } catch (error) {
+      console.error(error);
+      setStatus(error.message || "Não foi possível acessar a câmera.", "error");
+    }
+  }
+
+  async function switchCamera() {
+    if (!videoInputDevices || videoInputDevices.length <= 1) {
+      setStatus("Nenhuma câmera alternativa encontrada.", "warning");
+      return;
+    }
+
+    const currentIndex = videoInputDevices.findIndex(function (device) {
+      return device.deviceId === selectedDeviceId;
+    });
+
+    const nextIndex = currentIndex >= 0
+      ? (currentIndex + 1) % videoInputDevices.length
+      : 0;
+
+    selectedDeviceId = videoInputDevices[nextIndex].deviceId;
+
+    if (activeTargetInputId) {
+      await startScanner(activeTargetInputId, activeScannerMode);
+    }
+  }
+
+  document.querySelectorAll(".scanner-btn").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const targetInputId = this.getAttribute("data-target-input");
+      const mode = this.getAttribute("data-scanner-mode") || "qr";
+
+      startScanner(targetInputId, mode);
+    });
+  });
+
+  document.querySelectorAll("[data-close-scanner]").forEach(function (button) {
+    button.addEventListener("click", closeModal);
+  });
+
+  if (switchBtn) {
+    switchBtn.addEventListener("click", switchCamera);
+  }
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && modal && modal.classList.contains("open")) {
+      closeModal();
+    }
+  });
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  let produtoCameraStream = null;
+  let produtoCameraDevices = [];
+  let produtoCameraDeviceIndex = 0;
+
+  const modal = document.getElementById("produtoCameraModal");
+  const video = document.getElementById("produtoCameraVideo");
+  const canvas = document.getElementById("produtoCameraCanvas");
+
+  const abrirBtn = document.getElementById("abrirCameraProduto");
+  const capturarBtn = document.getElementById("capturarFotoProduto");
+  const trocarBtn = document.getElementById("trocarCameraFoto");
+  const fileInput = document.getElementById("fotoProdutoInput");
+  const hiddenBase64 = document.getElementById("fotoCameraBase64");
+  const previewImg = document.getElementById("produtoPhotoPreviewImg");
+  const previewText = document.getElementById("produtoPhotoPreviewText");
+  const limparBtn = document.getElementById("limparFotoProduto");
+
+  function isCameraContextAllowed() {
+    return (
+      window.location.protocol === "https:" ||
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
+    );
+  }
+
+  function openPhotoModal() {
+    if (!modal) return;
+
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+  }
+
+  function closePhotoModal() {
+    stopProductCamera();
+
+    if (!modal) return;
+
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  function stopProductCamera() {
+    if (produtoCameraStream) {
+      produtoCameraStream.getTracks().forEach(function (track) {
+        track.stop();
+      });
+
+      produtoCameraStream = null;
+    }
+
+    if (video) {
+      video.srcObject = null;
+    }
+  }
+
+  async function loadCameraDevices() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      produtoCameraDevices = [];
+      return;
+    }
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+
+    produtoCameraDevices = devices.filter(function (device) {
+      return device.kind === "videoinput";
+    });
+  }
+
+  async function startProductCamera() {
+    if (!modal || !video || !canvas) {
+      alert("Componentes da câmera não foram carregados corretamente.");
+      return;
+    }
+
+    if (!isCameraContextAllowed()) {
+      alert("A câmera só funciona em HTTPS ou localhost.");
+      return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("Seu navegador não suporta captura de câmera.");
+      return;
+    }
+
+    openPhotoModal();
+    stopProductCamera();
+
+    try {
+      await loadCameraDevices();
+
+      let constraints = {
+        video: {
+          facingMode: {
+            ideal: "environment"
+          }
+        },
+        audio: false
+      };
+
+      if (produtoCameraDevices.length > 0) {
+        const device = produtoCameraDevices[produtoCameraDeviceIndex] || produtoCameraDevices[0];
+
+        constraints = {
+          video: {
+            deviceId: {
+              exact: device.deviceId
+            }
+          },
+          audio: false
+        };
+      }
+
+      produtoCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = produtoCameraStream;
+      await video.play();
+    } catch (error) {
+      console.error("Erro ao abrir câmera:", error);
+
+      let message = "Não foi possível acessar a câmera.";
+
+      if (error && error.name === "NotAllowedError") {
+        message = "Permissão da câmera negada. Clique no cadeado da barra de endereço e permita a câmera.";
+      }
+
+      if (error && error.name === "NotFoundError") {
+        message = "Nenhuma câmera foi encontrada neste dispositivo.";
+      }
+
+      alert(message);
+      closePhotoModal();
+    }
+  }
+
+  async function switchProductCamera() {
+    try {
+      await loadCameraDevices();
+
+      if (produtoCameraDevices.length <= 1) {
+        alert("Nenhuma câmera alternativa encontrada.");
+        return;
+      }
+
+      produtoCameraDeviceIndex = (produtoCameraDeviceIndex + 1) % produtoCameraDevices.length;
+      await startProductCamera();
+    } catch (error) {
+      console.error("Erro ao trocar câmera:", error);
+      alert("Não foi possível trocar a câmera.");
+    }
+  }
+
+  function captureProductPhoto() {
+    if (!video || !canvas || !hiddenBase64 || !previewImg || !previewText) {
+      alert("Componentes da captura não foram carregados corretamente.");
+      return;
+    }
+
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 720;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+    context.drawImage(video, 0, 0, width, height);
+
+    const dataUrl = canvas.toDataURL("image/png", 0.92);
+
+    hiddenBase64.value = dataUrl;
+    previewImg.src = dataUrl;
+    previewText.textContent = "Foto capturada pela câmera.";
+
+    if (fileInput) {
+      fileInput.value = "";
+    }
+
+    closePhotoModal();
+  }
+
+  function clearProductPhoto() {
+    if (hiddenBase64) {
+      hiddenBase64.value = "";
+    }
+
+    if (fileInput) {
+      fileInput.value = "";
+    }
+
+    if (previewImg) {
+      previewImg.src = "{% static 'img/logo_vazada.png' %}";
+    }
+
+    if (previewText) {
+      previewText.textContent = "Nenhuma foto selecionada.";
+    }
+  }
+
+  function previewSelectedFile() {
+    if (!fileInput || !fileInput.files || !fileInput.files[0]) return;
+
+    const file = fileInput.files[0];
+
+    if (!file.type.startsWith("image/")) {
+      alert("Selecione uma imagem válida.");
+      fileInput.value = "";
+      return;
+    }
+
+    if (hiddenBase64) {
+      hiddenBase64.value = "";
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function (event) {
+      if (previewImg) {
+        previewImg.src = event.target.result;
+      }
+
+      if (previewText) {
+        previewText.textContent = "Imagem selecionada: " + file.name;
+      }
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  if (abrirBtn) {
+    abrirBtn.addEventListener("click", startProductCamera);
+  }
+
+  if (capturarBtn) {
+    capturarBtn.addEventListener("click", captureProductPhoto);
+  }
+
+  if (trocarBtn) {
+    trocarBtn.addEventListener("click", switchProductCamera);
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener("change", previewSelectedFile);
+  }
+
+  if (limparBtn) {
+    limparBtn.addEventListener("click", clearProductPhoto);
+  }
+
+  document.querySelectorAll("[data-close-product-camera]").forEach(function (button) {
+    button.addEventListener("click", closePhotoModal);
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && modal && modal.classList.contains("open")) {
+      closePhotoModal();
+    }
+  });
+});
+</script>
+{% endblock %}

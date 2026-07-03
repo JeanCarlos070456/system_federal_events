@@ -1,0 +1,659 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mov-page">
+
+  <div class="panel mov-hero">
+    <div>
+      <span class="page-kicker">Sistema de Gestão</span>
+      <h2>Retirada e Devolução</h2>
+      <p>Controle a saída, conferência, defeitos e retorno dos equipamentos vinculados ao estoque.</p>
+    </div>
+  </div>
+
+  <div class="mov-tabs">
+    <a
+      href="?tab=retirada{% if retirada_orcamento %}&retirada_orcamento={{ retirada_orcamento.id }}{% endif %}"
+      class="mov-tab {% if active_tab == 'retirada' %}active{% endif %}"
+    >
+      Retirada
+    </a>
+
+    <a
+      href="?tab=devolucao{% if devolucao_orcamento %}&devolucao_orcamento={{ devolucao_orcamento.id }}{% endif %}"
+      class="mov-tab {% if active_tab == 'devolucao' %}active{% endif %}"
+    >
+      Devolução
+    </a>
+  </div>
+
+  {% if active_tab == 'retirada' %}
+    <div class="mov-tab-content active">
+      <form method="post" enctype="multipart/form-data" class="mov-form" id="formRetirada" data-form-movimento>
+        {% csrf_token %}
+        <input type="hidden" name="modo" value="retirada">
+
+        <div class="panel mov-select-panel">
+          <div class="mov-field">
+            <label>Nome de quem retirou o produto</label>
+            <input
+              type="text"
+              name="responsavel_nome"
+              placeholder="Ex.: João Silva"
+              required
+            >
+          </div>
+
+          <div class="mov-field">
+            <label>Selecionar evento/orçamento</label>
+            <select class="mov-event-select" id="retiradaSelect" name="orcamento_id" required>
+              {% for evento in retirada_eventos %}
+                <option
+                  value="{{ evento.id }}"
+                  {% if retirada_orcamento and evento.id == retirada_orcamento.id %}selected{% endif %}
+                >
+                  {{ evento.codigo }} - {{ evento.evento_nome }}
+                </option>
+              {% empty %}
+                <option value="">Nenhum evento disponível para retirada</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        {% if retirada_orcamento %}
+          {% include 'retirada_devolucao/partials/_card_evento.html' with card=retirada_card modo='retirada' %}
+
+          {% include 'retirada_devolucao/partials/_grupos_movimento.html' with grupos=retirada_grupos modo='retirada' %}
+
+          <div class="mov-actions">
+            <button type="submit" class="btn-primary">
+              Salvar retirada
+            </button>
+          </div>
+        {% else %}
+          <div class="panel">
+            <p>Nenhum equipamento vinculado disponível para retirada.</p>
+          </div>
+        {% endif %}
+      </form>
+    </div>
+  {% endif %}
+
+  {% if active_tab == 'devolucao' %}
+    <div class="mov-tab-content active">
+      <form method="post" enctype="multipart/form-data" class="mov-form" id="formDevolucao" data-form-movimento>
+        {% csrf_token %}
+        <input type="hidden" name="modo" value="devolucao">
+
+        <div class="panel mov-select-panel">
+          <div class="mov-field">
+            <label>Nome de quem devolveu o produto</label>
+            <input
+              type="text"
+              name="responsavel_nome"
+              placeholder="Ex.: Maria Souza"
+              required
+            >
+          </div>
+
+          <div class="mov-field">
+            <label>Selecionar evento/orçamento</label>
+            <select class="mov-event-select" id="devolucaoSelect" name="orcamento_id" required>
+              {% for evento in devolucao_eventos %}
+                <option
+                  value="{{ evento.id }}"
+                  {% if devolucao_orcamento and evento.id == devolucao_orcamento.id %}selected{% endif %}
+                >
+                  {{ evento.codigo }} - {{ evento.evento_nome }}
+                </option>
+              {% empty %}
+                <option value="">Nenhum evento disponível para devolução</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        {% if devolucao_orcamento %}
+          {% include 'retirada_devolucao/partials/_card_evento.html' with card=devolucao_card modo='devolucao' %}
+
+          {% include 'retirada_devolucao/partials/_grupos_movimento.html' with grupos=devolucao_grupos modo='devolucao' %}
+
+          <div class="mov-actions">
+            <button type="submit" class="btn-primary">
+              Salvar devolução
+            </button>
+          </div>
+        {% else %}
+          <div class="panel">
+            <p>Nenhum equipamento retirado disponível para devolução.</p>
+          </div>
+        {% endif %}
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="scanner-modal" id="scannerModal" aria-hidden="true">
+    <div class="scanner-backdrop" data-close-scanner></div>
+
+    <div class="scanner-card">
+      <div class="scanner-header">
+        <div>
+          <h3 id="scannerTitle">Leitor</h3>
+          <p id="scannerExpected">Aponte a câmera para o código.</p>
+        </div>
+
+        <button type="button" class="scanner-close" data-close-scanner>
+          ×
+        </button>
+      </div>
+
+      <div id="scannerReader" class="scanner-reader"></div>
+
+      <div class="scanner-status" id="scannerStatus">
+        Aguardando câmera...
+      </div>
+
+      <div class="scanner-actions">
+        <button type="button" class="btn-secondary" data-close-scanner>
+          Cancelar leitura
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="camera-modal" id="cameraModal" aria-hidden="true">
+    <div class="camera-backdrop" data-close-camera></div>
+
+    <div class="camera-card">
+      <div class="camera-header">
+        <div>
+          <h3>Tirar foto do equipamento</h3>
+          <p id="cameraCodLabel">Aponte a câmera para o equipamento.</p>
+        </div>
+
+        <button type="button" class="scanner-close" data-close-camera>
+          ×
+        </button>
+      </div>
+
+      <video id="cameraVideo" autoplay playsinline muted></video>
+
+      <canvas id="cameraCanvas" style="display: none;"></canvas>
+
+      <div class="camera-actions">
+        <button type="button" class="btn-secondary" data-close-camera>
+          Cancelar
+        </button>
+
+        <button type="button" class="btn-primary" id="btnCapturarFoto">
+          Capturar foto
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" crossorigin="anonymous"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const retiradaSelect = document.getElementById("retiradaSelect");
+  const devolucaoSelect = document.getElementById("devolucaoSelect");
+
+  function reloadWithParam(tab, paramName, value) {
+    if (!value) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", tab);
+    url.searchParams.set(paramName, value);
+
+    window.location.href = url.toString();
+  }
+
+  if (retiradaSelect) {
+    retiradaSelect.addEventListener("change", function () {
+      reloadWithParam("retirada", "retirada_orcamento", retiradaSelect.value);
+    });
+  }
+
+  if (devolucaoSelect) {
+    devolucaoSelect.addEventListener("change", function () {
+      reloadWithParam("devolucao", "devolucao_orcamento", devolucaoSelect.value);
+    });
+  }
+
+  const scannerModal = document.getElementById("scannerModal");
+  const scannerTitle = document.getElementById("scannerTitle");
+  const scannerExpected = document.getElementById("scannerExpected");
+  const scannerStatus = document.getElementById("scannerStatus");
+
+  let scanner = null;
+  let scannerAtivo = false;
+  let currentExpectedCod = null;
+  let currentInputId = null;
+  let currentStatusId = null;
+
+  function normalizarCodigo(value) {
+    return String(value || "").trim();
+  }
+
+  function setScannerStatus(text) {
+    if (scannerStatus) scannerStatus.textContent = text;
+  }
+
+  function abrirScannerModal() {
+    if (!scannerModal) return;
+
+    scannerModal.classList.add("open");
+    scannerModal.setAttribute("aria-hidden", "false");
+  }
+
+  async function pararScanner() {
+    if (scanner && scannerAtivo) {
+      try {
+        await scanner.stop();
+      } catch (error) {
+        console.warn("Scanner já estava parado.", error);
+      }
+    }
+
+    if (scanner) {
+      try {
+        scanner.clear();
+      } catch (error) {
+        console.warn("Não foi possível limpar o scanner.", error);
+      }
+    }
+
+    scanner = null;
+    scannerAtivo = false;
+  }
+
+  async function fecharScannerModal() {
+    await pararScanner();
+
+    if (!scannerModal) return;
+
+    scannerModal.classList.remove("open");
+    scannerModal.setAttribute("aria-hidden", "true");
+    setScannerStatus("Aguardando câmera...");
+  }
+
+  function marcarConferido(codigo, textoStatus) {
+    const input = document.getElementById(currentInputId);
+    const status = document.getElementById(currentStatusId);
+
+    if (input) {
+      input.value = codigo;
+    }
+
+    if (status) {
+      status.textContent = textoStatus || "Conferido";
+      status.classList.remove("mov-conf-pendente");
+      status.classList.add("mov-conf-ok");
+    }
+  }
+
+  async function tratarCodigoLido(codigo) {
+    codigo = normalizarCodigo(codigo);
+    const esperado = normalizarCodigo(currentExpectedCod);
+
+    if (!codigo) return;
+
+    if (codigo !== esperado) {
+      alert("Código não confere. Lido: " + codigo + " | Esperado: " + esperado);
+      return;
+    }
+
+    marcarConferido(codigo, "Conferido");
+    await fecharScannerModal();
+  }
+
+  async function iniciarScanner({ tipo, expectedCod, inputId, statusId }) {
+    if (typeof Html5Qrcode === "undefined") {
+      alert("Leitor não carregou. Verifique sua conexão.");
+      return;
+    }
+
+    await pararScanner();
+
+    currentExpectedCod = expectedCod;
+    currentInputId = inputId;
+    currentStatusId = statusId;
+
+    abrirScannerModal();
+
+    const isQr = tipo === "qr";
+
+    scannerTitle.textContent = isQr ? "Ler QR Code" : "Ler Código de Barras";
+    scannerExpected.textContent = "COD esperado: " + expectedCod;
+    setScannerStatus("Solicitando acesso à câmera...");
+
+    const formatsToSupport = isQr
+      ? [Html5QrcodeSupportedFormats.QR_CODE]
+      : [
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.CODE_93,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.ITF
+        ];
+
+    scanner = new Html5Qrcode("scannerReader", {
+      formatsToSupport: formatsToSupport
+    });
+
+    const config = {
+      fps: 12,
+      qrbox: function(viewfinderWidth, viewfinderHeight) {
+        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+        const size = Math.floor(minEdge * 0.72);
+
+        return {
+          width: size,
+          height: isQr ? size : Math.floor(size * 0.42)
+        };
+      },
+      aspectRatio: 1.777
+    };
+
+    try {
+      await scanner.start(
+        { facingMode: "environment" },
+        config,
+        async function(decodedText) {
+          setScannerStatus("Código lido: " + decodedText);
+          await tratarCodigoLido(decodedText);
+        },
+        function() {
+          setScannerStatus("Procurando código...");
+        }
+      );
+
+      scannerAtivo = true;
+      setScannerStatus("Aponte a câmera para o código.");
+    } catch (error) {
+      console.error(error);
+      setScannerStatus("Não foi possível acessar a câmera.");
+    }
+  }
+
+  document.querySelectorAll("[data-scan-cod]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      iniciarScanner({
+        tipo: btn.dataset.scanTipo || "qr",
+        expectedCod: btn.dataset.cod,
+        inputId: btn.dataset.inputId,
+        statusId: btn.dataset.statusId
+      });
+    });
+  });
+
+  document.querySelectorAll("[data-close-scanner]").forEach(function (el) {
+    el.addEventListener("click", fecharScannerModal);
+  });
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && scannerModal && scannerModal.classList.contains("open")) {
+      fecharScannerModal();
+    }
+  });
+
+  function fecharModalDefeito(modalDefeito) {
+    if (modalDefeito) {
+      modalDefeito.classList.remove("open");
+      modalDefeito.setAttribute("aria-hidden", "true");
+    }
+  }
+
+  document.querySelectorAll("[data-close-defeito]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      fecharModalDefeito(btn.closest(".defeito-modal"));
+    });
+  });
+
+  document.querySelectorAll("[data-checklist-select]").forEach(function (select) {
+    select.addEventListener("change", function () {
+      const vinculoId = select.dataset.vinculoId;
+      const modalDefeito = document.getElementById("defeitoModal_" + vinculoId);
+
+      if (select.value === "defeito" && modalDefeito) {
+        modalDefeito.classList.add("open");
+        modalDefeito.setAttribute("aria-hidden", "false");
+      }
+
+      if (select.value === "avaliado") {
+        const conferidoInput = document.getElementById("conferido_" + vinculoId);
+        const status = document.getElementById("statusConferido_" + vinculoId);
+
+        if (conferidoInput) {
+          conferidoInput.value = "";
+        }
+
+        if (status) {
+          status.textContent = "Pendente";
+          status.classList.remove("mov-conf-ok");
+          status.classList.add("mov-conf-pendente");
+        }
+      }
+    });
+  });
+
+  const cameraModal = document.getElementById("cameraModal");
+  const cameraVideo = document.getElementById("cameraVideo");
+  const cameraCanvas = document.getElementById("cameraCanvas");
+  const cameraCodLabel = document.getElementById("cameraCodLabel");
+  const btnCapturarFoto = document.getElementById("btnCapturarFoto");
+
+  let cameraStream = null;
+  let cameraVinculoId = null;
+
+  async function abrirCamera(vinculoId, cod) {
+    cameraVinculoId = vinculoId;
+
+    if (cameraCodLabel) {
+      cameraCodLabel.textContent = "COD: " + cod;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("Seu navegador não liberou acesso direto à câmera. Use a opção Escolher imagem.");
+      return;
+    }
+
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" }
+        },
+        audio: false
+      });
+
+      cameraVideo.srcObject = cameraStream;
+
+      cameraModal.classList.add("open");
+      cameraModal.setAttribute("aria-hidden", "false");
+
+    } catch (error) {
+      console.error(error);
+      alert("Não foi possível abrir a câmera. Verifique a permissão do navegador ou use Escolher imagem.");
+    }
+  }
+
+  function fecharCamera() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(function (track) {
+        track.stop();
+      });
+    }
+
+    cameraStream = null;
+    cameraVinculoId = null;
+
+    if (cameraVideo) {
+      cameraVideo.srcObject = null;
+    }
+
+    if (cameraModal) {
+      cameraModal.classList.remove("open");
+      cameraModal.setAttribute("aria-hidden", "true");
+    }
+  }
+
+  function capturarFotoCamera() {
+    if (!cameraVideo || !cameraCanvas || !cameraVinculoId) {
+      return;
+    }
+
+    const width = cameraVideo.videoWidth || 1280;
+    const height = cameraVideo.videoHeight || 720;
+
+    cameraCanvas.width = width;
+    cameraCanvas.height = height;
+
+    const ctx = cameraCanvas.getContext("2d");
+    ctx.drawImage(cameraVideo, 0, 0, width, height);
+
+    const dataUrl = cameraCanvas.toDataURL("image/jpeg", 0.88);
+
+    const inputCamera = document.getElementById("fotoCamera_" + cameraVinculoId);
+    const preview = document.getElementById("fotoPreview_" + cameraVinculoId);
+
+    if (inputCamera) {
+      inputCamera.value = dataUrl;
+    }
+
+    if (preview) {
+      const img = preview.querySelector("img");
+
+      if (img) {
+        img.src = dataUrl;
+      }
+
+      preview.style.display = "grid";
+    }
+
+    fecharCamera();
+  }
+
+  document.querySelectorAll("[data-open-camera]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      abrirCamera(btn.dataset.vinculoId, btn.dataset.cod);
+    });
+  });
+
+  document.querySelectorAll("[data-close-camera]").forEach(function (btn) {
+    btn.addEventListener("click", fecharCamera);
+  });
+
+  if (btnCapturarFoto) {
+    btnCapturarFoto.addEventListener("click", capturarFotoCamera);
+  }
+
+  function confirmarDefeito(vinculoId) {
+    const obs = document.querySelector("[name='defeito_obs_" + vinculoId + "']");
+    const foto = document.querySelector("[name='foto_defeito_" + vinculoId + "']");
+    const fotoCamera = document.querySelector("[name='foto_camera_" + vinculoId + "']");
+    const conferidoInput = document.getElementById("conferido_" + vinculoId);
+    const status = document.getElementById("statusConferido_" + vinculoId);
+
+    const temObs = obs && obs.value.trim();
+    const temUpload = foto && foto.files && foto.files.length > 0;
+    const temCamera = fotoCamera && fotoCamera.value && fotoCamera.value.trim();
+
+    if (!temObs) {
+      alert("Descreva o ocorrido antes de confirmar o defeito.");
+      return false;
+    }
+
+    if (!temUpload && !temCamera) {
+      alert("A foto do defeito é obrigatória.");
+      return false;
+    }
+
+    if (conferidoInput && !conferidoInput.value) {
+      conferidoInput.value = conferidoInput.dataset.cod || "";
+    }
+
+    if (status) {
+      status.textContent = "Defeito registrado";
+      status.classList.remove("mov-conf-pendente");
+      status.classList.add("mov-conf-ok");
+    }
+
+    return true;
+  }
+
+  document.querySelectorAll("[data-confirm-defeito]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const vinculoId = btn.dataset.vinculoId;
+      const modalDefeito = btn.closest(".defeito-modal");
+
+      const ok = confirmarDefeito(vinculoId);
+
+      if (ok) {
+        fecharModalDefeito(modalDefeito);
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-form-movimento]").forEach(function (form) {
+    form.addEventListener("submit", function (event) {
+      const pendentes = [];
+      let defeitoIncompleto = null;
+
+      form.querySelectorAll("[data-checklist-select]").forEach(function (select) {
+        const vinculoId = select.dataset.vinculoId;
+        const conferidoInput = form.querySelector("[name='conferido_" + vinculoId + "']");
+        const codigo = conferidoInput ? conferidoInput.dataset.cod : "";
+
+        if (select.value === "defeito") {
+          const obs = form.querySelector("[name='defeito_obs_" + vinculoId + "']");
+          const foto = form.querySelector("[name='foto_defeito_" + vinculoId + "']");
+          const fotoCamera = form.querySelector("[name='foto_camera_" + vinculoId + "']");
+
+          const temObs = obs && obs.value.trim();
+          const temUpload = foto && foto.files && foto.files.length > 0;
+          const temCamera = fotoCamera && fotoCamera.value && fotoCamera.value.trim();
+
+          if (!temObs) {
+            defeitoIncompleto = "Informe a observação do defeito.";
+          }
+
+          if (!temUpload && !temCamera) {
+            defeitoIncompleto = "A foto do defeito é obrigatória.";
+          }
+
+          if (temObs && (temUpload || temCamera) && conferidoInput && !conferidoInput.value) {
+            conferidoInput.value = codigo;
+          }
+
+          return;
+        }
+
+        if (!conferidoInput || !conferidoInput.value) {
+          pendentes.push(codigo);
+        }
+      });
+
+      if (defeitoIncompleto) {
+        event.preventDefault();
+        alert(defeitoIncompleto);
+        return;
+      }
+
+      if (pendentes.length > 0) {
+        event.preventDefault();
+        alert("Ainda existem CODs não conferidos: " + pendentes.join(", "));
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

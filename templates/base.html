@@ -1,0 +1,35 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ page_title|default:"Federal Eventos" }}{% endblock %}</title>
+  <link rel="icon" href="{% static 'img/logo_vazada.png' %}">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <link rel="stylesheet" href="{% static 'css/federal_django.css' %}">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="federal-app">
+  {% if app_user %}
+    {% include 'components/sidebar.html' %}
+  {% endif %}
+
+  <main class="app-shell {% if not app_user %}app-shell-login{% endif %}">
+    {% if app_user %}
+      {% include 'components/topbar.html' %}
+    {% endif %}
+
+    <section class="content-wrap">
+      {% include 'components/messages.html' %}
+      {% block content %}{% endblock %}
+    </section>
+  </main>
+
+  <script src="{% static 'js/app.js' %}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

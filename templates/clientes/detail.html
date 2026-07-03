@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="cliente-detail-page">
+
+  <div class="cliente-detail-hero panel">
+    <div>
+      <div class="cliente-detail-kicker">
+        {{ cliente.documento|default:'Sem documento' }} · {{ cliente.tipo_pessoa }}
+      </div>
+
+      <h2>{{ cliente.nome }}</h2>
+
+      <p>
+        {% if cliente.responsavel_nome %}
+          Responsável: {{ cliente.responsavel_nome }}
+          {% if cliente.responsavel_cargo %} · {{ cliente.responsavel_cargo }}{% endif %}
+        {% else %}
+          Cliente cadastrado sem responsável informado.
+        {% endif %}
+      </p>
+
+      <div class="produto-detail-badges">
+        <span class="badge">{{ cliente.status }}</span>
+
+        {% if cliente.origem %}
+          <span class="badge">{{ cliente.origem }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="inline-actions">
+      <a class="btn-secondary" href="{% url 'clientes:index' %}">
+        Voltar
+      </a>
+
+      <a class="btn-secondary" href="{% url 'clientes:update' cliente.id %}">
+        Editar
+      </a>
+    </div>
+  </div>
+
+  <div class="cliente-detail-metrics">
+    <div class="stat-card">
+      <small>Orçamentos</small>
+      <strong>{{ resumo_orcamentos.total|default:0 }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Valor contratado</small>
+      <strong>R$ {{ resumo_orcamentos.valor_total|default:0|floatformat:2 }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Status</small>
+      <strong>{{ cliente.status }}</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>UF</small>
+      <strong>{{ cliente.uf|default:'—' }}</strong>
+    </div>
+  </div>
+
+  <div class="cliente-detail-grid">
+
+    <section class="panel">
+      <h3>Dados do Cliente</h3>
+
+      <div class="data-grid">
+        <div>
+          <small>Nome/Razão Social</small>
+          <strong>{{ cliente.nome }}</strong>
+        </div>
+
+        <div>
+          <small>Documento</small>
+          <strong>{{ cliente.documento|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Inscrição Estadual</small>
+          <strong>{{ cliente.inscricao_estadual|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Tipo</small>
+          <strong>{{ cliente.tipo_pessoa }}</strong>
+        </div>
+
+        <div>
+          <small>Responsável</small>
+          <strong>{{ cliente.responsavel_nome|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Cargo</small>
+          <strong>{{ cliente.responsavel_cargo|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Telefone</small>
+          <strong>{{ cliente.telefone|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>WhatsApp</small>
+          <strong>{{ cliente.whatsapp|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>E-mail</small>
+          <strong>{{ cliente.email|default:'—' }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h3>Endereço</h3>
+
+      <div class="data-grid">
+        <div>
+          <small>CEP</small>
+          <strong>{{ cliente.cep|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Endereço</small>
+          <strong>{{ cliente.endereco|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Número</small>
+          <strong>{{ cliente.numero|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Complemento</small>
+          <strong>{{ cliente.complemento|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Bairro</small>
+          <strong>{{ cliente.bairro|default:'—' }}</strong>
+        </div>
+
+        <div>
+          <small>Cidade/UF</small>
+          <strong>{{ cliente.cidade|default:'—' }}/{{ cliente.uf|default:'—' }}</strong>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <section class="panel">
+    <h3>Observações</h3>
+    <p>{{ cliente.observacoes|default:'Nenhuma observação.' }}</p>
+  </section>
+
+  <section class="panel">
+    <h3>Últimos Orçamentos</h3>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Evento</th>
+            <th>Status</th>
+            <th>Financeiro</th>
+            <th>Valor Final</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for o in orcamentos %}
+            <tr>
+              <td>{{ o.codigo }}</td>
+              <td>{{ o.evento_nome }}</td>
+              <td><span class="badge">{{ o.status }}</span></td>
+              <td><span class="badge">{{ o.financeiro }}</span></td>
+              <td>R$ {{ o.valor_final|floatformat:2 }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="5">Nenhum orçamento vinculado a este cliente.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+{% endblock %}

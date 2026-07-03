@@ -1,0 +1,184 @@
+{% for grupo in grupos %}
+  <div class="panel mov-sala-card">
+    <div class="mov-sala-header">
+      <span>{{ grupo.tipo }}</span>
+      <h3>{{ grupo.nome }}</h3>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>COD</th>
+            <th>Nome do material</th>
+            <th>Checklist</th>
+            <th>Conferido</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for v in grupo.vinculos %}
+            <tr>
+              <td>
+                <strong>{{ v.cod_patrimonio }}</strong>
+              </td>
+
+              <td>
+                {{ v.item.equipamento|default:v.descricao }}
+              </td>
+
+              <td>
+                <select
+                  name="checklist_{{ v.id }}"
+                  class="mov-checklist-select"
+                  data-checklist-select
+                  data-vinculo-id="{{ v.id }}"
+                  required
+                >
+                  <option value="avaliado">Avaliado</option>
+                  <option value="defeito">Com defeito</option>
+                </select>
+
+                <div class="defeito-modal" id="defeitoModal_{{ v.id }}" aria-hidden="true">
+                  <div class="defeito-backdrop" data-close-defeito></div>
+
+                  <div class="defeito-card">
+                    <div class="defeito-header">
+                      <div>
+                        <h3>Registrar defeito</h3>
+                        <p>COD {{ v.cod_patrimonio }} · {{ v.item.equipamento }}</p>
+                      </div>
+
+                      <button type="button" class="scanner-close" data-close-defeito>
+                        ×
+                      </button>
+                    </div>
+
+                    <div class="mov-field">
+                      <label>Descreva o ocorrido</label>
+                      <textarea
+                        name="defeito_obs_{{ v.id }}"
+                        rows="4"
+                        placeholder="Descreva o defeito encontrado no equipamento"
+                      ></textarea>
+                    </div>
+
+                    <div class="mov-field">
+                      <label>Foto obrigatória do equipamento</label>
+
+                      <div class="mov-photo-actions">
+                        <button
+                          type="button"
+                          class="btn-secondary mov-photo-btn"
+                          data-open-camera
+                          data-vinculo-id="{{ v.id }}"
+                          data-cod="{{ v.cod_patrimonio }}"
+                        >
+                          Tirar foto pela câmera
+                        </button>
+
+                        <label class="btn-secondary mov-photo-btn" for="fotoDefeito_{{ v.id }}">
+                          Escolher imagem
+                        </label>
+                      </div>
+
+                      <input
+                        type="file"
+                        name="foto_defeito_{{ v.id }}"
+                        id="fotoDefeito_{{ v.id }}"
+                        accept="image/*"
+                        class="mov-photo-input"
+                      >
+
+                      <input
+                        type="hidden"
+                        name="foto_camera_{{ v.id }}"
+                        id="fotoCamera_{{ v.id }}"
+                        data-camera-input
+                      >
+
+                      <div
+                        class="mov-photo-preview"
+                        id="fotoPreview_{{ v.id }}"
+                        style="display: none;"
+                      >
+                        <img src="" alt="Foto capturada do equipamento">
+                        <span>Foto capturada pela câmera</span>
+                      </div>
+
+                      <small>
+                        Use a câmera do dispositivo ou escolha uma imagem. A foto será salva no bucket e vinculada ao registro operacional.
+                      </small>
+                    </div>
+
+                    <div class="mov-modal-actions">
+                      <button
+                        type="button"
+                        class="btn-primary"
+                        data-confirm-defeito
+                        data-vinculo-id="{{ v.id }}"
+                      >
+                        Confirmar defeito
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </td>
+
+              <td>
+                <input
+                  type="hidden"
+                  name="conferido_{{ v.id }}"
+                  id="conferido_{{ v.id }}"
+                  data-conferido-input
+                  data-cod="{{ v.cod_patrimonio }}"
+                >
+
+                <div class="mov-conf-actions">
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    data-scan-cod
+                    data-scan-tipo="qr"
+                    data-cod="{{ v.cod_patrimonio }}"
+                    data-input-id="conferido_{{ v.id }}"
+                    data-status-id="statusConferido_{{ v.id }}"
+                  >
+                    QR Code
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn-secondary"
+                    data-scan-cod
+                    data-scan-tipo="barra"
+                    data-cod="{{ v.cod_patrimonio }}"
+                    data-input-id="conferido_{{ v.id }}"
+                    data-status-id="statusConferido_{{ v.id }}"
+                  >
+                    Cód. Barras
+                  </button>
+
+                  <span
+                    id="statusConferido_{{ v.id }}"
+                    class="mov-conf-status mov-conf-pendente"
+                  >
+                    Pendente
+                  </span>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4">Nenhum equipamento nesta sala.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% empty %}
+  <div class="panel">
+    <p>Nenhum equipamento operacional encontrado.</p>
+  </div>
+{% endfor %}
