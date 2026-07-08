@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Redefinir senha — Federal Eventos{% endblock %}
+{% block content %}
+<div class="login-page">
+  <div class="login-card">
+    <img class="login-logo" src="{% static 'img/logo_vazada.png' %}" alt="Federal Eventos">
+
+    <h1>Nova senha</h1>
+    <p>Digite e confirme sua nova senha de acesso.</p>
+
+    <div id="reset-status" style="margin-bottom: 1rem; font-size: 0.82rem; color: #cfd7ff; text-align:center;">
+      Validando link de recuperação...
+    </div>
+
+    <form id="reset-password-form" class="form-grid single" style="display:none;">
+      <label>
+        Nova senha
+        <input
+          type="password"
+          id="new-password"
+          placeholder="Digite a nova senha"
+          autocomplete="new-password"
+          required
+          minlength="6"
+        >
+      </label>
+
+      <label>
+        Confirmar nova senha
+        <input
+          type="password"
+          id="confirm-password"
+          placeholder="Confirme a nova senha"
+          autocomplete="new-password"
+          required
+          minlength="6"
+        >
+      </label>
+
+      <button class="btn-primary" type="submit">Atualizar senha</button>
+
+      <div style="text-align:center; margin-top: 0.85rem;">
+        <a
+          href="{% url 'accounts:login' %}"
+          style="color:#8be9ff; text-decoration:none; font-size:0.78rem; letter-spacing:0.04em;"
+        >
+          Voltar para o login
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function () {
+  const SUPABASE_URL = "{{ supabase_url|escapejs }}";
+  const SUPABASE_ANON_KEY = "{{ supabase_anon_key|escapejs }}";
+  const LOGIN_URL = "{{ login_url|escapejs }}";
+
+  const statusEl = document.getElementById("reset-status");
+  const formEl = document.getElementById("reset-password-form");
+  const newPasswordEl = document.getElementById("new-password");
+  const confirmPasswordEl = document.getElementById("confirm-password");
+
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    statusEl.style.color = "#ff5c9a";
+    statusEl.innerText = "Configuração do Supabase ausente. Contate o administrador.";
+    return;
+  }
+
+  const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function setStatus(message, type) {
+    statusEl.innerText = message;
+
+    if (type === "error") {
+      statusEl.style.color = "#ff5c9a";
+      return;
+    }
+
+    if (type === "success") {
+      statusEl.style.color = "#57ff9a";
+      return;
+    }
+
+    statusEl.style.color = "#cfd7ff";
+  }
+
+  async function carregarSessaoRecuperacao() {
+    const queryParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+
+    const code = queryParams.get("code");
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+    const type = hashParams.get("type");
+
+    try {
+      if (code) {
+        const { error } = await client.auth.exchangeCodeForSession(code);
+        if (error) {
+          throw error;
+        }
+      } else if (accessToken && refreshToken) {
+        const { error } = await client.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (error) {
+          throw error;
+        }
+      } else {
+        throw new Error("Link inválido ou expirado.");
+      }
+
+      if (type && type !== "recovery") {
+        throw new Error("Tipo de link inválido.");
+      }
+
+      setStatus("Link validado. Defina sua nova senha.", "success");
+      formEl.style.display = "grid";
+    } catch (error) {
+      setStatus("Link inválido ou expirado. Solicite uma nova recuperação de senha.", "error");
+      formEl.style.display = "none";
+    }
+  }
+
+  formEl.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const newPassword = newPasswordEl.value.trim();
+    const confirmPassword = confirmPasswordEl.value.trim();
+
+    if (newPassword.length < 6) {
+      setStatus("A nova senha precisa ter pelo menos 6 caracteres.", "error");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setStatus("As senhas não conferem.", "error");
+      return;
+    }
+
+    setStatus("Atualizando senha...", "info");
+
+    const { error } = await client.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      setStatus("Não foi possível atualizar a senha. Solicite um novo link.", "error");
+      return;
+    }
+
+    await client.auth.signOut();
+
+    setStatus("Senha atualizada com sucesso. Redirecionando para o login...", "success");
+
+    setTimeout(function () {
+      window.location.href = LOGIN_URL + "?password_reset=success";
+    }, 1200);
+  });
+
+  carregarSessaoRecuperacao();
+})();
+</script>
+{% endblock %}

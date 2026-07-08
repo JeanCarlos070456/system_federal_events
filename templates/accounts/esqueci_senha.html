@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Login — Federal Eventos{% endblock %}
+{% block title %}Recuperar senha — Federal Eventos{% endblock %}
 {% block content %}
 <div class="login-page">
   <div class="login-card">
     <img class="login-logo" src="{% static 'img/logo_vazada.png' %}" alt="Federal Eventos">
-    <h1>Federal Eventos</h1>
-    <p>Entre com sua conta cadastrada no sistema.</p>
+
+    <h1>Recuperar senha</h1>
+    <p>Informe o e-mail cadastrado no sistema para receber o link de recuperação.</p>
 
     <form method="post" class="form-grid single">
       {% csrf_token %}
-      <input type="hidden" name="next" value="{{ next }}">
 
       {% for field in form %}
         <label>{{ field.label }}{{ field }}</label>
@@ -19,14 +19,14 @@
         {% endfor %}
       {% endfor %}
 
-      <button class="btn-primary" type="submit">Entrar</button>
+      <button class="btn-primary" type="submit">Enviar recuperação</button>
 
       <div style="text-align:center; margin-top: 0.85rem;">
         <a
-          href="{% url 'accounts:esqueci_senha' %}"
+          href="{% url 'accounts:login' %}"
           style="color:#8be9ff; text-decoration:none; font-size:0.78rem; letter-spacing:0.04em;"
         >
-          Esqueceu a senha?
+          Voltar para o login
         </a>
       </div>
     </form>

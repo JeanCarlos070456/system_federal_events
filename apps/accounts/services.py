@@ -27,7 +27,7 @@ class SupabaseAuthService:
     @staticmethod
     def _client():
         if not settings.SUPABASE_URL or not settings.SUPABASE_ANON_KEY:
-            raise AuthenticationError("SUPABASE_URL ou SUPABASE_ANON_KEY não configurado no .env.")
+            raise AuthenticationError("SUPABASE_URL ou SUPABASE_ANON_KEY não configurado no ambiente.")
         try:
             from supabase import create_client
         except Exception as exc:
@@ -64,6 +64,39 @@ class SupabaseAuthService:
             "permissions": permissions,
             "navigation": navigation,
         }
+
+    @classmethod
+    def request_password_reset(cls, email: str, redirect_to: str) -> bool:
+        """
+        Solicita recuperação de senha somente se o e-mail existir em usuarios_app.
+
+        Retorna:
+        - True: e-mail encontrado e solicitação enviada ao Supabase.
+        - False: e-mail não encontrado/inativo. A view deve mostrar mensagem genérica.
+        """
+        email = (email or "").strip().lower()
+
+        usuario_existe = UsuarioApp.objects.filter(
+            email__iexact=email,
+            ativo=True,
+        ).exists()
+
+        if not usuario_existe:
+            return False
+
+        client = cls._client()
+
+        try:
+            client.auth.reset_password_for_email(
+                email,
+                {
+                    "redirect_to": redirect_to,
+                },
+            )
+        except Exception as exc:
+            raise AuthenticationError("Não foi possível enviar o e-mail de recuperação agora.") from exc
+
+        return True
 
 
 class UserAccessService:
