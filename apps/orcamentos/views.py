@@ -4,13 +4,14 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.accounts.decorators import permission_required
 from apps.core.logging import log_action
-from apps.core.models import Orcamento, OrcamentoAmbiente, OrcamentoItem, Produto
+from apps.core.models import EstoqueVinculo, Orcamento, OrcamentoAmbiente, OrcamentoItem, Produto
 from .forms import AmbienteForm, ItemForm, OrcamentoForm
 from .services import OrcamentoService
 
@@ -353,6 +354,48 @@ def add_ambiente(request, pk):
         ambiente.save()
 
         messages.success(request, "Ambiente adicionado.")
+
+    return redirect("orcamentos:detail", pk=orcamento.pk)
+
+
+@permission_required("Orçamento", "pode_editar")
+@transaction.atomic
+def delete_ambiente(request, pk, ambiente_id):
+    orcamento = get_object_or_404(Orcamento, pk=pk)
+    ambiente = get_object_or_404(
+        OrcamentoAmbiente,
+        pk=ambiente_id,
+        orcamento=orcamento,
+    )
+
+    if request.method == "POST":
+        vinculos_estoque = (
+            EstoqueVinculo.objects
+            .filter(orcamento=orcamento, ambiente=ambiente)
+            .exclude(status__in=["Cancelado", "Devolvido"])
+            .exists()
+        )
+
+        if vinculos_estoque:
+            messages.error(
+                request,
+                "Este ambiente já possui códigos vinculados no Estoque. Remova os vínculos no Estoque antes de excluir o ambiente.",
+            )
+            return redirect("orcamentos:detail", pk=orcamento.pk)
+
+        nome_ambiente = ambiente.nome or ambiente.get_tipo_display()
+        total_itens = ambiente.itens.count()
+
+        ambiente.delete()
+        OrcamentoService.recalcular_orcamento(orcamento)
+
+        if total_itens:
+            messages.success(
+                request,
+                f"Ambiente '{nome_ambiente}' removido com {total_itens} item(ns).",
+            )
+        else:
+            messages.success(request, f"Ambiente '{nome_ambiente}' removido.")
 
     return redirect("orcamentos:detail", pk=orcamento.pk)
 

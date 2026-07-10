@@ -210,6 +210,19 @@
           </button>
         </form>
       </details>
+
+      <div class="orcamento-ambiente-actions" style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+        <form
+          method="post"
+          action="{% url 'orcamentos:delete_ambiente' orcamento.id amb.id %}"
+          onsubmit="return confirm('Tem certeza que deseja excluir este ambiente? Todos os itens deste ambiente também serão removidos.');"
+        >
+          {% csrf_token %}
+          <button class="btn-danger-outline" type="submit">
+            Excluir ambiente
+          </button>
+        </form>
+      </div>
     </div>
   {% empty %}
     <div class="panel">
