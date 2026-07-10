@@ -17,5 +17,6 @@ urlpatterns = [
     path("<uuid:pk>/ambientes/adicionar/", views.add_ambiente, name="add_ambiente"),
     path("<uuid:pk>/ambientes/<uuid:ambiente_id>/excluir/", views.delete_ambiente, name="delete_ambiente"),
     path("<uuid:pk>/ambientes/<uuid:ambiente_id>/itens/adicionar/", views.add_item, name="add_item"),
+    path("<uuid:pk>/itens/<uuid:item_id>/editar/", views.update_item, name="update_item"),
     path("<uuid:pk>/itens/<uuid:item_id>/excluir/", views.delete_item, name="delete_item"),
 ]

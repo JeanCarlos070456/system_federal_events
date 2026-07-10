@@ -439,6 +439,84 @@ def add_item(request, pk, ambiente_id):
 
 
 @permission_required("Orçamento", "pode_editar")
+@transaction.atomic
+def update_item(request, pk, item_id):
+    orcamento = get_object_or_404(Orcamento, pk=pk)
+    item = get_object_or_404(
+        OrcamentoItem,
+        pk=item_id,
+        orcamento=orcamento,
+    )
+
+    if request.method == "POST":
+        vinculos_estoque = (
+            EstoqueVinculo.objects
+            .filter(orcamento=orcamento, item=item)
+            .exclude(status__in=["Cancelado", "Devolvido"])
+            .exists()
+        )
+
+        if vinculos_estoque:
+            messages.error(
+                request,
+                "Este item já possui código vinculado no Estoque. Remova o vínculo no Estoque antes de editar o equipamento.",
+            )
+            return redirect("orcamentos:detail", pk=orcamento.pk)
+
+        equipamento = (request.POST.get("equipamento") or "").strip()
+        descricao = (request.POST.get("descricao") or "").strip()
+
+        try:
+            quantidade = int(request.POST.get("quantidade") or 1)
+        except (TypeError, ValueError):
+            quantidade = 1
+
+        try:
+            dias_uso = int(request.POST.get("dias_uso") or 1)
+        except (TypeError, ValueError):
+            dias_uso = 1
+
+        try:
+            ordem = int(request.POST.get("ordem") or 0)
+        except (TypeError, ValueError):
+            ordem = 0
+
+        valor_diaria = _decimal_from_post(request.POST.get("valor_diaria"))
+        desconto = _decimal_from_post(request.POST.get("desconto"))
+
+        if not equipamento:
+            messages.error(request, "Informe o nome do equipamento.")
+            return redirect("orcamentos:detail", pk=orcamento.pk)
+
+        if quantidade < 1:
+            quantidade = 1
+
+        if dias_uso < 1:
+            dias_uso = 1
+
+        if valor_diaria < Decimal("0.00"):
+            valor_diaria = Decimal("0.00")
+
+        if desconto < Decimal("0.00"):
+            desconto = Decimal("0.00")
+
+        item.produto = None
+        item.orcamento = orcamento
+        item.equipamento = equipamento
+        item.descricao = descricao
+        item.quantidade = quantidade
+        item.dias_uso = dias_uso
+        item.valor_diaria = valor_diaria
+        item.desconto = desconto
+        item.ordem = ordem
+
+        OrcamentoService.salvar_item(item)
+
+        messages.success(request, "Item atualizado com sucesso.")
+
+    return redirect("orcamentos:detail", pk=orcamento.pk)
+
+@permission_required("Orçamento", "pode_editar")
 def delete_item(request, pk, item_id):
     orcamento = get_object_or_404(Orcamento, pk=pk)
     item = get_object_or_404(OrcamentoItem, pk=item_id, orcamento=orcamento)

@@ -125,12 +125,119 @@
                 <td>R$ {{ item.desconto|floatformat:2 }}</td>
                 <td>R$ {{ item.valor_total|floatformat:2 }}</td>
                 <td>
-                  <form method="post" action="{% url 'orcamentos:delete_item' orcamento.id item.id %}">
-                    {% csrf_token %}
-                    <button class="btn-link-danger" type="submit">
-                      Remover
+                  <div style="display:flex; align-items:center; justify-content:flex-end; gap:0.65rem; flex-wrap:wrap;">
+                    <button
+                      type="button"
+                      data-toggle-edit-item="{{ item.id }}"
+                      style="background:transparent; border:0; color:#ffb347; cursor:pointer; font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em;"
+                    >
+                      Editar
                     </button>
-                  </form>
+
+                    <form
+                      method="post"
+                      action="{% url 'orcamentos:delete_item' orcamento.id item.id %}"
+                      onsubmit="return confirm('Tem certeza que deseja remover este item do orçamento?');"
+                      style="margin:0;"
+                    >
+                      {% csrf_token %}
+                      <button class="btn-link-danger" type="submit">
+                        Remover
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+
+              <tr data-edit-row="{{ item.id }}" hidden>
+                <td colspan="7">
+                  <div class="panel" style="margin:0.75rem 0; border-color:rgba(255,179,71,0.45);">
+                    <h4 style="margin-bottom:0.75rem; color:#ffb347; text-transform:uppercase; letter-spacing:0.08em;">
+                      Editar item do ambiente
+                    </h4>
+
+                    <form
+                      method="post"
+                      action="{% url 'orcamentos:update_item' orcamento.id item.id %}"
+                      class="form-grid compact orcamento-item-form orcamento-item-edit-form"
+                      data-autocomplete-url="{% url 'orcamentos:produtos_autocomplete' %}"
+                    >
+                      {% csrf_token %}
+
+                      <input type="hidden" name="ambiente_id" value="{{ amb.id }}">
+
+                      <div class="orcamento-autocomplete-field">
+                        <label>Equipamento</label>
+
+                        <input
+                          type="text"
+                          name="equipamento"
+                          class="orcamento-equipment-input"
+                          value="{{ item.equipamento }}"
+                          placeholder="Digite o nome do produto/equipamento"
+                          autocomplete="off"
+                          required
+                        >
+
+                        <div class="orcamento-suggestions" hidden></div>
+
+                        <small>
+                          Você pode ajustar o equipamento, descrição, quantidade, dias, diária, desconto e ordem.
+                        </small>
+                      </div>
+
+                      <p>
+                        <label>Descrição</label>
+                        <textarea name="descricao" rows="2" class="orcamento-descricao-input">{{ item.descricao }}</textarea>
+                      </p>
+
+                      <p>
+                        <label>Quantidade</label>
+                        <input type="number" name="quantidade" min="1" value="{{ item.quantidade }}" required>
+                      </p>
+
+                      <p>
+                        <label>Dias de uso</label>
+                        <input type="number" name="dias_uso" min="1" value="{{ item.dias_uso }}" required>
+                      </p>
+
+                      <p>
+                        <label>Valor diária</label>
+                        <input type="text" name="valor_diaria" class="orcamento-valor-diaria-input" value="{{ item.valor_diaria|floatformat:2 }}">
+                      </p>
+
+                      <p>
+                        <label>Desconto</label>
+                        <input type="text" name="desconto" value="{{ item.desconto|floatformat:2 }}">
+                      </p>
+
+                      <p>
+                        <label>Ordem</label>
+                        <input type="number" name="ordem" value="{{ item.ordem }}">
+                      </p>
+
+                      <input type="hidden" name="catalogo_descricao" class="orcamento-catalogo-descricao-input">
+                      <input type="hidden" name="catalogo_valor_diaria" class="orcamento-catalogo-valor-input">
+
+                      <div style="display:flex; gap:0.75rem; align-items:center; justify-content:flex-end; grid-column:1 / -1;">
+                        <button
+                          type="button"
+                          class="btn-secondary"
+                          data-cancel-edit-item="{{ item.id }}"
+                        >
+                          Cancelar
+                        </button>
+
+                        <button
+                          class="btn-primary"
+                          type="submit"
+                          style="background:linear-gradient(135deg,#ff9d2e,#ffb347); box-shadow:0 0 18px rgba(255,179,71,0.35);"
+                        >
+                          Salvar alterações
+                        </button>
+                      </div>
+                    </form>
+                  </div>
                 </td>
               </tr>
             {% empty %}
@@ -333,6 +440,53 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
   const debounceMap = new WeakMap();
+
+  function setEditButtonText(itemId, text) {
+    const button = document.querySelector('[data-toggle-edit-item="' + itemId + '"]');
+
+    if (button) {
+      button.textContent = text;
+    }
+  }
+
+  function closeAllEditRows() {
+    document.querySelectorAll("[data-edit-row]").forEach(function (row) {
+      row.hidden = true;
+      setEditButtonText(row.getAttribute("data-edit-row"), "Editar");
+    });
+  }
+
+  document.querySelectorAll("[data-toggle-edit-item]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const itemId = button.getAttribute("data-toggle-edit-item");
+      const row = document.querySelector('[data-edit-row="' + itemId + '"]');
+
+      if (!row) return;
+
+      const shouldOpen = row.hidden;
+
+      closeAllEditRows();
+
+      if (shouldOpen) {
+        row.hidden = false;
+        button.textContent = "Fechar";
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-cancel-edit-item]").forEach(function (button) {
+    button.addEventListener("click", function () {
+      const itemId = button.getAttribute("data-cancel-edit-item");
+      const row = document.querySelector('[data-edit-row="' + itemId + '"]');
+
+      if (row) {
+        row.hidden = true;
+      }
+
+      setEditButtonText(itemId, "Editar");
+    });
+  });
+
 
   function normalizeText(value) {
     return (value || "").trim();
