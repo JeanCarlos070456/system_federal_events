@@ -18,6 +18,7 @@ from reportlab.lib.units import cm, mm
 from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (
     Image,
+    KeepTogether,
     PageBreak,
     Paragraph,
     SimpleDocTemplate,
@@ -31,6 +32,7 @@ from apps.core.models import Orcamento, OrcamentoItem
 
 class OrcamentoService:
     PDF_BLUE = colors.HexColor("#08789C")
+    PDF_OS_LIGHT_BLUE = colors.HexColor("#E8F6FA")
     PDF_NAVY = colors.HexColor("#071A39")
     PDF_PURPLE = colors.HexColor("#8B5CF6")
     PDF_LIGHT_GRAY = colors.HexColor("#F3F6F9")
@@ -137,6 +139,33 @@ class OrcamentoService:
     def _p(cls, value, style: ParagraphStyle) -> Paragraph:
         text = escape(cls._safe(value)).replace("\n", "<br/>")
         return Paragraph(text, style)
+
+    @classmethod
+    def _ambiente_titulo(cls, ambiente) -> str:
+        """
+        Monta o título do ambiente para PDFs.
+
+        Mantém compatibilidade com os tipos antigos salvos como código
+        e também aceita tipos personalizados digitados pelo usuário.
+        """
+        tipo_raw = str(getattr(ambiente, "tipo", "") or "").strip()
+        nome_raw = str(getattr(ambiente, "nome", "") or "").strip()
+
+        tipos_padrao = {
+            "sala": "Sala",
+            "auditorio": "Auditório",
+            "auditório": "Auditório",
+            "credenciamento": "Credenciamento",
+            "outro": "Outro",
+        }
+
+        tipo_key = tipo_raw.lower()
+        tipo_label = tipos_padrao.get(tipo_key, tipo_raw.title() if tipo_raw else "Ambiente")
+
+        if nome_raw:
+            return f"{tipo_label} {nome_raw}"
+
+        return tipo_label
 
     @staticmethod
     def calcular_item_total(item: OrcamentoItem) -> Decimal:
@@ -293,17 +322,16 @@ class OrcamentoService:
         canvas.setFillColor(cls.PDF_BLUE)
         canvas.rect(0, height - header_height, width, header_height, stroke=0, fill=1)
 
-        canvas.setFillColor(colors.white)
-        canvas.setFont("Times-Bold", 16)
-        canvas.drawString(3 * cm, height - 15 * mm, "Federal Eventos")
-
         logo_path = cls._logo_path()
+
+        # Nova composição do cabeçalho:
+        # logo à esquerda e nome da empresa à direita.
         if logo_path:
             try:
                 logo = ImageReader(logo_path)
                 canvas.drawImage(
                     logo,
-                    width - 4.2 * cm,
+                    3 * cm,
                     height - 22 * mm,
                     width=18 * mm,
                     height=18 * mm,
@@ -312,11 +340,17 @@ class OrcamentoService:
                     anchor="c",
                 )
             except Exception:
-                canvas.setFont("Times-Bold", 7)
-                canvas.drawRightString(width - 3 * cm, height - 15 * mm, "FEDERAL")
+                canvas.setFillColor(colors.white)
+                canvas.setFont("Times-Bold", 8)
+                canvas.drawString(3 * cm, height - 15 * mm, "FEDERAL")
         else:
-            canvas.setFont("Times-Bold", 7)
-            canvas.drawRightString(width - 3 * cm, height - 15 * mm, "FEDERAL")
+            canvas.setFillColor(colors.white)
+            canvas.setFont("Times-Bold", 8)
+            canvas.drawString(3 * cm, height - 15 * mm, "FEDERAL")
+
+        canvas.setFillColor(colors.white)
+        canvas.setFont("Times-Bold", 17)
+        canvas.drawRightString(width - 3 * cm, height - 15 * mm, "Federal Eventos")
 
         canvas.setStrokeColor(cls.PDF_PURPLE)
         canvas.setLineWidth(1.4)
@@ -515,6 +549,24 @@ class OrcamentoService:
             textColor=colors.black,
         )
 
+        os_label_style = ParagraphStyle(
+            "FederalOSLabel",
+            parent=label_style,
+            fontName="Times-Bold",
+            fontSize=11,
+            leading=13,
+            textColor=colors.white,
+        )
+
+        os_value_style = ParagraphStyle(
+            "FederalOSValue",
+            parent=normal_style,
+            fontName="Times-Bold",
+            fontSize=16,
+            leading=19,
+            textColor=cls.PDF_NAVY,
+        )
+
         table_header_style = ParagraphStyle(
             "FederalTableHeader",
             parent=normal_style,
@@ -557,17 +609,15 @@ class OrcamentoService:
 
         periodo = f"{cls._date(orcamento.data_inicio)} a {cls._date(orcamento.data_fim)}"
 
-        elements.append(Paragraph("DADOS CADASTRAIS DO DOCUMENTO", section_style))
-
         dados_table = Table(
             [
                 [Paragraph("EVENTO", label_style), Paragraph("CLIENTE", label_style)],
                 [cls._p(orcamento.evento_nome, normal_style), cls._p(cliente_nome, normal_style)],
-                [Paragraph("DATA", label_style), Paragraph("LOCAL", label_style)],
-                [cls._p(periodo, normal_style), cls._p(orcamento.local_evento, normal_style)],
-                [Paragraph("VALOR DO ORÇAMENTO", label_style), Paragraph("CÓDIGO", label_style)],
-                [Paragraph(cls._money(orcamento.valor_final), normal_style), cls._p(orcamento.codigo, normal_style)],
-                [Paragraph("DOCUMENTO", label_style), Paragraph("RESPONSÁVEL", label_style)],
+                [Paragraph("OS - ORDEM DE SERVIÇO", os_label_style), Paragraph("LOCAL", label_style)],
+                [Paragraph(str(orcamento.codigo), os_value_style), cls._p(orcamento.local_evento, normal_style)],
+                [Paragraph("DATA", label_style), Paragraph("VALOR DO ORÇAMENTO", label_style)],
+                [cls._p(periodo, normal_style), Paragraph(cls._money(orcamento.valor_final), normal_style)],
+                [Paragraph("CNPJ", label_style), Paragraph("RESPONSÁVEL", label_style)],
                 [cls._p(cliente_documento, normal_style), cls._p(orcamento.responsavel_cliente, normal_style)],
             ],
             colWidths=[8 * cm, 8 * cm],
@@ -580,7 +630,9 @@ class OrcamentoService:
                     ("INNERGRID", (0, 0), (-1, -1), 0.35, cls.PDF_GRID),
                     ("BACKGROUND", (0, 0), (-1, -1), colors.white),
                     ("BACKGROUND", (0, 0), (-1, 0), cls.PDF_LIGHT_GRAY),
-                    ("BACKGROUND", (0, 2), (-1, 2), cls.PDF_LIGHT_GRAY),
+                    ("BACKGROUND", (0, 2), (0, 2), cls.PDF_BLUE),
+                    ("BACKGROUND", (0, 3), (0, 3), cls.PDF_OS_LIGHT_BLUE),
+                    ("BACKGROUND", (1, 2), (1, 2), cls.PDF_LIGHT_GRAY),
                     ("BACKGROUND", (0, 4), (-1, 4), cls.PDF_LIGHT_GRAY),
                     ("BACKGROUND", (0, 6), (-1, 6), cls.PDF_LIGHT_GRAY),
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -588,21 +640,35 @@ class OrcamentoService:
                     ("RIGHTPADDING", (0, 0), (-1, -1), 8),
                     ("TOPPADDING", (0, 0), (-1, -1), 7),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+                    ("TOPPADDING", (0, 3), (0, 3), 10),
+                    ("BOTTOMPADDING", (0, 3), (0, 3), 10),
                 ]
             )
         )
 
-        elements.append(dados_table)
-        elements.append(Paragraph("DETALHAMENTO DO ORÇAMENTO", section_style))
+        elements.append(
+            KeepTogether(
+                [
+                    Paragraph("DADOS CADASTRAIS DO DOCUMENTO", section_style),
+                    dados_table,
+                ]
+            )
+        )
 
         ambientes = list(orcamento.ambientes.prefetch_related("itens").all())
 
         if not ambientes:
-            elements.append(Paragraph("Nenhum ambiente ou item cadastrado neste orçamento.", normal_style))
+            elements.append(
+                KeepTogether(
+                    [
+                        Paragraph("DETALHAMENTO DO ORÇAMENTO", section_style),
+                        Paragraph("Nenhum ambiente ou item cadastrado neste orçamento.", normal_style),
+                    ]
+                )
+            )
 
-        for ambiente in ambientes:
-            titulo_ambiente = f"{ambiente.get_tipo_display()} {ambiente.nome}"
-            elements.append(Paragraph(cls._safe(titulo_ambiente), ambiente_style))
+        for index, ambiente in enumerate(ambientes):
+            titulo_ambiente = cls._ambiente_titulo(ambiente)
 
             itens = list(ambiente.itens.all())
 
@@ -688,11 +754,20 @@ class OrcamentoService:
                 )
             )
 
-            elements.append(itens_table)
-            elements.append(Spacer(1, 7))
+            bloco_ambiente = []
 
-        elements.append(Spacer(1, 8))
-        elements.append(Paragraph("RESUMO FINANCEIRO", section_style))
+            if index == 0:
+                bloco_ambiente.append(Paragraph("DETALHAMENTO DO ORÇAMENTO", section_style))
+
+            bloco_ambiente.extend(
+                [
+                    Paragraph(cls._safe(titulo_ambiente), ambiente_style),
+                    itens_table,
+                    Spacer(1, 7),
+                ]
+            )
+
+            elements.append(KeepTogether(bloco_ambiente))
 
         resumo_table = Table(
             [
@@ -739,15 +814,35 @@ class OrcamentoService:
             )
         )
 
-        elements.append(resumo_table)
+        elements.append(
+            KeepTogether(
+                [
+                    Spacer(1, 8),
+                    Paragraph("RESUMO FINANCEIRO", section_style),
+                    resumo_table,
+                ]
+            )
+        )
 
         if orcamento.condicoes_pagamento:
-            elements.append(Paragraph("CONDIÇÕES DE PAGAMENTO", section_style))
-            elements.append(cls._p(orcamento.condicoes_pagamento, normal_style))
+            elements.append(
+                KeepTogether(
+                    [
+                        Paragraph("CONDIÇÕES DE PAGAMENTO", section_style),
+                        cls._p(orcamento.condicoes_pagamento, normal_style),
+                    ]
+                )
+            )
 
         if orcamento.observacoes:
-            elements.append(Paragraph("OBSERVAÇÕES", section_style))
-            elements.append(cls._p(orcamento.observacoes, normal_style))
+            elements.append(
+                KeepTogether(
+                    [
+                        Paragraph("OBSERVAÇÕES", section_style),
+                        cls._p(orcamento.observacoes, normal_style),
+                    ]
+                )
+            )
 
         doc.build(
             elements,
@@ -891,6 +986,54 @@ class OrcamentoService:
             textColor=colors.black,
         )
 
+        os_label_style = ParagraphStyle(
+            "ContratoOSLabel",
+            parent=label_style,
+            fontName="Times-Bold",
+            fontSize=11,
+            leading=13,
+            textColor=colors.white,
+        )
+
+        os_value_style = ParagraphStyle(
+            "ContratoOSValue",
+            parent=normal_style,
+            fontName="Times-Bold",
+            fontSize=16,
+            leading=19,
+            textColor=cls.PDF_BLUE,
+        )
+
+        os_callout_label_style = ParagraphStyle(
+            "ContratoOSCalloutLabel",
+            parent=label_style,
+            fontName="Times-Bold",
+            fontSize=10,
+            leading=12,
+            textColor=colors.white,
+            alignment=TA_CENTER,
+        )
+
+        os_callout_value_style = ParagraphStyle(
+            "ContratoOSCalloutValue",
+            parent=normal_style,
+            fontName="Times-Bold",
+            fontSize=15,
+            leading=18,
+            textColor=cls.PDF_BLUE,
+            alignment=TA_CENTER,
+        )
+
+        signature_doc_style = ParagraphStyle(
+            "ContratoSignatureDoc",
+            parent=normal_style,
+            fontName="Times-Roman",
+            fontSize=9,
+            leading=11,
+            textColor=cls.PDF_MUTED,
+            alignment=TA_CENTER,
+        )
+
         table_header_style = ParagraphStyle(
             "ContratoTableHeader",
             parent=normal_style,
@@ -928,6 +1071,32 @@ class OrcamentoService:
             )
         )
 
+        os_contrato_table = Table(
+            [
+                [Paragraph("OS - ORDEM DE SERVIÇO", os_callout_label_style)],
+                [Paragraph(escape(cls._safe(orcamento.codigo)), os_callout_value_style)],
+            ],
+            colWidths=[7.2 * cm],
+            hAlign="CENTER",
+        )
+        os_contrato_table.setStyle(
+            TableStyle(
+                [
+                    ("BOX", (0, 0), (-1, -1), 0.6, cls.PDF_BLUE),
+                    ("BACKGROUND", (0, 0), (0, 0), cls.PDF_BLUE),
+                    ("BACKGROUND", (0, 1), (0, 1), cls.PDF_OS_LIGHT_BLUE),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
+        elements.append(os_contrato_table)
+        elements.append(Spacer(1, 10))
+
         elements.append(
             Paragraph(
                 "Este contrato acompanha o orçamento emitido pela Federal Eventos e passa a integrar toda proposta comercial aprovada pelo cliente.",
@@ -964,11 +1133,11 @@ class OrcamentoService:
             [
                 [Paragraph("EVENTO", label_style), Paragraph("CLIENTE", label_style)],
                 [cls._p(orcamento.evento_nome, normal_style), cls._p(cliente_nome, normal_style)],
-                [Paragraph("DATA", label_style), Paragraph("LOCAL", label_style)],
-                [cls._p(periodo, normal_style), cls._p(orcamento.local_evento, normal_style)],
-                [Paragraph("VALOR DO ORÇAMENTO", label_style), Paragraph("CÓDIGO", label_style)],
-                [Paragraph(cls._money(orcamento.valor_final), normal_style), cls._p(orcamento.codigo, normal_style)],
-                [Paragraph("DOCUMENTO", label_style), Paragraph("RESPONSÁVEL", label_style)],
+                [Paragraph("OS - ORDEM DE SERVIÇO", os_label_style), Paragraph("LOCAL", label_style)],
+                [Paragraph(escape(cls._safe(orcamento.codigo)), os_value_style), cls._p(orcamento.local_evento, normal_style)],
+                [Paragraph("DATA", label_style), Paragraph("VALOR DO ORÇAMENTO", label_style)],
+                [cls._p(periodo, normal_style), Paragraph(cls._money(orcamento.valor_final), normal_style)],
+                [Paragraph("CNPJ", label_style), Paragraph("RESPONSÁVEL", label_style)],
                 [cls._p(cliente_documento, normal_style), cls._p(orcamento.responsavel_cliente, normal_style)],
             ],
             colWidths=[8 * cm, 8 * cm],
@@ -982,6 +1151,8 @@ class OrcamentoService:
                     ("BACKGROUND", (0, 0), (-1, -1), colors.white),
                     ("BACKGROUND", (0, 0), (-1, 0), cls.PDF_LIGHT_GRAY),
                     ("BACKGROUND", (0, 2), (-1, 2), cls.PDF_LIGHT_GRAY),
+                    ("BACKGROUND", (0, 2), (0, 2), cls.PDF_BLUE),
+                    ("BACKGROUND", (0, 3), (0, 3), cls.PDF_OS_LIGHT_BLUE),
                     ("BACKGROUND", (0, 4), (-1, 4), cls.PDF_LIGHT_GRAY),
                     ("BACKGROUND", (0, 6), (-1, 6), cls.PDF_LIGHT_GRAY),
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -1002,7 +1173,7 @@ class OrcamentoService:
             elements.append(Paragraph("Nenhum ambiente ou item cadastrado neste orçamento.", normal_style))
 
         for ambiente in ambientes:
-            titulo_ambiente = f"{ambiente.get_tipo_display()} {ambiente.nome}"
+            titulo_ambiente = cls._ambiente_titulo(ambiente)
             elements.append(Paragraph(cls._safe(titulo_ambiente), ambiente_style))
 
             itens = list(ambiente.itens.all())
@@ -1092,14 +1263,15 @@ class OrcamentoService:
             elements.append(itens_table)
             elements.append(Spacer(1, 8))
 
-        elements.append(Paragraph("ASSINATURAS", dados_section_style))
-
         if assinado_empresa:
             assinatura_empresa = cls._assinatura_flowable()
             if assinatura_empresa is None:
                 assinatura_empresa = Paragraph("", normal_style)
         else:
             assinatura_empresa = Paragraph("", normal_style)
+
+        cnpj_federal = "CNPJ: 28.214.175/0001-10"
+        cnpj_cliente = f"CNPJ: {cls._safe(cliente_documento)}"
 
         assinatura_table = Table(
             [
@@ -1115,12 +1287,17 @@ class OrcamentoService:
                     Paragraph("Assinatura da empresa", center_style),
                     Paragraph("Assinatura do cliente", center_style),
                 ],
+                [
+                    Paragraph(cnpj_federal, signature_doc_style),
+                    Paragraph(escape(cnpj_cliente), signature_doc_style),
+                ],
             ],
             colWidths=[8 * cm, 8 * cm],
             rowHeights=[
                 12 * mm,
                 4 * mm,
-                7 * mm,
+                5 * mm,
+                5 * mm,
             ],
         )
 
@@ -1130,7 +1307,7 @@ class OrcamentoService:
                     ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                     ("VALIGN", (0, 0), (-1, 0), "BOTTOM"),
                     ("VALIGN", (0, 1), (-1, 1), "TOP"),
-                    ("VALIGN", (0, 2), (-1, 2), "TOP"),
+                    ("VALIGN", (0, 2), (-1, 3), "TOP"),
 
                     ("TOPPADDING", (0, 0), (-1, 0), 0),
                     ("BOTTOMPADDING", (0, 0), (-1, 0), 0),
@@ -1138,14 +1315,20 @@ class OrcamentoService:
                     ("TOPPADDING", (0, 1), (-1, 1), 0),
                     ("BOTTOMPADDING", (0, 1), (-1, 1), 0),
 
-                    ("TOPPADDING", (0, 2), (-1, 2), 0),
-                    ("BOTTOMPADDING", (0, 2), (-1, 2), 0),
+                    ("TOPPADDING", (0, 2), (-1, 3), 0),
+                    ("BOTTOMPADDING", (0, 2), (-1, 3), 0),
                 ]
             )
         )
 
-        elements.append(Spacer(1, 10))
-        elements.append(assinatura_table)
+        assinatura_block = KeepTogether(
+            [
+                Paragraph("ASSINATURAS", dados_section_style),
+                Spacer(1, 10),
+                assinatura_table,
+            ]
+        )
+        elements.append(assinatura_block)
 
         doc.build(
             elements,
