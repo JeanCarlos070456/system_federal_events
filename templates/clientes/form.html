@@ -218,6 +218,36 @@ document.addEventListener("DOMContentLoaded", function () {
     return (value || "").replace(/\D/g, "");
   }
 
+  function isValidCnpj(value) {
+    const cnpj = onlyDigits(value);
+
+    if (cnpj.length !== 14) return false;
+    if (/^(\d)\1{13}$/.test(cnpj)) return false;
+
+    function calcDigit(base, weights) {
+      let sum = 0;
+
+      for (let i = 0; i < weights.length; i++) {
+        sum += parseInt(base[i], 10) * weights[i];
+      }
+
+      const remainder = sum % 11;
+      return remainder < 2 ? "0" : String(11 - remainder);
+    }
+
+    const firstDigit = calcDigit(
+      cnpj.slice(0, 12),
+      [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    );
+
+    const secondDigit = calcDigit(
+      cnpj.slice(0, 12) + firstDigit,
+      [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    );
+
+    return cnpj.slice(12) === firstDigit + secondDigit;
+  }
+
   function getField(id) {
     return document.getElementById(id);
   }
@@ -251,7 +281,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (digits.length <= 8) return digits.replace(/^(\d{2})(\d{3})(\d+)/, "$1.$2.$3");
     if (digits.length <= 12) return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d+)/, "$1.$2.$3/$4");
 
-    return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/, "$1.$2.$3/$4-$5");
+    return digits.replace(
+      /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2}).*/,
+      "$1.$2.$3/$4-$5"
+    );
   }
 
   function formatCep(value) {
@@ -363,12 +396,25 @@ document.addEventListener("DOMContentLoaded", function () {
     const cnpj = onlyDigits(documentoField.value);
 
     if (cnpj.length !== 14) {
-      setStatus("Digite um CNPJ válido com 14 dígitos antes de buscar.", "error");
+      setStatus("Digite um CNPJ com 14 dígitos antes de buscar.", "error");
       documentoField.focus();
       return;
     }
 
-    const url = buscarBtn.getAttribute("data-url") + "?cnpj=" + encodeURIComponent(cnpj);
+    if (!isValidCnpj(cnpj)) {
+      setStatus("CNPJ inválido. Confira os números digitados.", "error");
+      documentoField.focus();
+      return;
+    }
+
+    const lookupUrl = buscarBtn ? buscarBtn.getAttribute("data-url") : "";
+
+    if (!lookupUrl) {
+      setStatus("URL de consulta do CNPJ não configurada.", "error");
+      return;
+    }
+
+    const url = lookupUrl + "?cnpj=" + encodeURIComponent(cnpj);
 
     setStatus("Consultando CNPJ na BrasilAPI...", "warning");
 
@@ -383,10 +429,16 @@ document.addEventListener("DOMContentLoaded", function () {
         }
       });
 
-      const payload = await response.json();
+      let payload = {};
+
+      try {
+        payload = await response.json();
+      } catch (jsonError) {
+        payload = {};
+      }
 
       if (!response.ok || !payload.ok) {
-        throw new Error(payload.message || "Não foi possível consultar esse CNPJ.");
+        throw new Error(payload.message || "Não foi possível consultar esse CNPJ agora.");
       }
 
       applyData(payload.data || {});
@@ -412,6 +464,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (digits.length > 11) {
         this.value = formatCnpj(digits);
+      }
+    });
+
+    documentoField.addEventListener("blur", function () {
+      const digits = onlyDigits(this.value);
+
+      if (digits.length === 14 && !isValidCnpj(digits)) {
+        setStatus("CNPJ inválido. Confira os números digitados.", "error");
       }
     });
   }

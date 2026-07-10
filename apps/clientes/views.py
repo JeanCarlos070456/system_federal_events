@@ -24,6 +24,39 @@ def _only_digits(value: str | None) -> str:
     return re.sub(r"\D", "", value or "")
 
 
+def _is_valid_cnpj(value: str | None) -> bool:
+    """
+    Valida CNPJ pelos dígitos verificadores.
+
+    Evita chamar a BrasilAPI com CNPJ inválido e melhora a mensagem para o usuário.
+    """
+    cnpj = _only_digits(value)
+
+    if len(cnpj) != 14:
+        return False
+
+    if cnpj == cnpj[0] * 14:
+        return False
+
+    def calcular_digito(base: str, pesos: list[int]) -> str:
+        soma = sum(int(digito) * peso for digito, peso in zip(base, pesos))
+        resto = soma % 11
+        digito = 0 if resto < 2 else 11 - resto
+        return str(digito)
+
+    primeiro_digito = calcular_digito(
+        cnpj[:12],
+        [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+    )
+
+    segundo_digito = calcular_digito(
+        cnpj[:12] + primeiro_digito,
+        [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+    )
+
+    return cnpj[-2:] == primeiro_digito + segundo_digito
+
+
 def _format_cnpj(value: str | None) -> str:
     digits = _only_digits(value)
 
@@ -175,7 +208,16 @@ def buscar_cnpj(request):
         return JsonResponse(
             {
                 "ok": False,
-                "message": "Informe um CNPJ válido com 14 dígitos.",
+                "message": "Informe um CNPJ com 14 dígitos.",
+            },
+            status=400,
+        )
+
+    if not _is_valid_cnpj(cnpj):
+        return JsonResponse(
+            {
+                "ok": False,
+                "message": "CNPJ inválido. Confira os números digitados.",
             },
             status=400,
         )
@@ -206,12 +248,14 @@ def buscar_cnpj(request):
         )
 
     except HTTPError as exc:
-        if exc.code == 404:
-            message = "CNPJ não encontrado na BrasilAPI."
+        if exc.code == 400:
+            message = "CNPJ inválido. Confira os números digitados."
+        elif exc.code == 404:
+            message = "CNPJ não encontrado na base pública."
         elif exc.code == 429:
             message = "Muitas consultas em sequência. Aguarde alguns instantes e tente novamente."
         else:
-            message = f"Erro ao consultar CNPJ. Código HTTP: {exc.code}."
+            message = "Não foi possível consultar o CNPJ agora."
 
         return JsonResponse(
             {
@@ -225,16 +269,16 @@ def buscar_cnpj(request):
         return JsonResponse(
             {
                 "ok": False,
-                "message": "Não foi possível conectar à BrasilAPI agora.",
+                "message": "Não foi possível conectar ao serviço público de consulta de CNPJ agora.",
             },
             status=502,
         )
 
-    except Exception as exc:
+    except Exception:
         return JsonResponse(
             {
                 "ok": False,
-                "message": f"Erro inesperado ao consultar CNPJ: {exc}",
+                "message": "Erro inesperado ao consultar CNPJ. Tente novamente.",
             },
             status=500,
         )
