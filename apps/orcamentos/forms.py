@@ -6,6 +6,23 @@ from apps.core.forms import FederalModelForm
 from apps.core.models import Cliente, Orcamento, OrcamentoAmbiente, OrcamentoItem
 
 
+AMBIENTE_TIPO_SUGESTOES = [
+    "Sala",
+    "Auditório",
+    "Credenciamento",
+    "Outro",
+    "Garagem",
+    "Camarim",
+    "Palco",
+    "Área externa",
+    "Recepção",
+    "Depósito",
+    "Sala VIP",
+    "Foyer",
+    "Hall",
+]
+
+
 class OrcamentoForm(FederalModelForm):
     cliente = forms.ModelChoiceField(
         queryset=Cliente.objects.order_by("nome"),
@@ -45,6 +62,28 @@ class OrcamentoForm(FederalModelForm):
 
 
 class AmbienteForm(FederalModelForm):
+    """
+    Ambiente do orçamento.
+
+    Regra:
+    - O usuário pode escolher uma sugestão pronta.
+    - O usuário também pode digitar livremente um novo tipo, como Garagem,
+      Camarim, Palco, Área externa etc.
+    """
+
+    tipo = forms.CharField(
+        label="Tipo",
+        required=True,
+        max_length=40,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Ex: Sala, Auditório, Garagem...",
+                "list": "tipo-ambiente-sugestoes",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
     class Meta:
         model = OrcamentoAmbiente
         fields = [
@@ -56,6 +95,24 @@ class AmbienteForm(FederalModelForm):
         widgets = {
             "observacoes": forms.Textarea(attrs={"rows": 2}),
         }
+
+    def clean_tipo(self):
+        tipo = (self.cleaned_data.get("tipo") or "").strip()
+
+        if not tipo:
+            raise forms.ValidationError("Informe o tipo do ambiente.")
+
+        legacy_labels = {
+            "sala": "Sala",
+            "auditorio": "Auditório",
+            "auditório": "Auditório",
+            "credenciamento": "Credenciamento",
+            "outro": "Outro",
+        }
+
+        normalized_key = tipo.lower()
+
+        return legacy_labels.get(normalized_key, tipo[:40])
 
 
 class ItemForm(FederalModelForm):

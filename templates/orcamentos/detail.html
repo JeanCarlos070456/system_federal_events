@@ -57,6 +57,26 @@
       <p>
         <label for="{{ ambiente_form.tipo.id_for_label }}">Tipo</label>
         {{ ambiente_form.tipo }}
+
+        <datalist id="tipo-ambiente-sugestoes">
+          <option value="Sala">
+          <option value="Auditório">
+          <option value="Credenciamento">
+          <option value="Outro">
+          <option value="Garagem">
+          <option value="Camarim">
+          <option value="Palco">
+          <option value="Área externa">
+          <option value="Recepção">
+          <option value="Depósito">
+          <option value="Sala VIP">
+          <option value="Foyer">
+          <option value="Hall">
+        </datalist>
+
+        <small>
+          Você pode selecionar uma sugestão ou digitar um tipo personalizado.
+        </small>
       </p>
 
       <p>

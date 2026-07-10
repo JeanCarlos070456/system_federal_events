@@ -218,10 +218,25 @@ class Orcamento(TimeStampedMixin):
 
 
 class OrcamentoAmbiente(TimeStampedMixin):
-    TIPO_CHOICES = (("sala", "Sala"), ("auditorio", "Auditório"), ("credenciamento", "Credenciamento"), ("outro", "Outro"))
+    """
+    Ambiente/sala do orçamento.
+
+    O campo tipo aceita valores livres para permitir ambientes como Garagem,
+    Camarim, Palco, Área externa etc. Mantemos get_tipo_display para
+    compatibilidade com templates e PDFs que já chamavam esse método.
+    """
+
+    TIPO_LEGACY_LABELS = {
+        "sala": "Sala",
+        "auditorio": "Auditório",
+        "auditório": "Auditório",
+        "credenciamento": "Credenciamento",
+        "outro": "Outro",
+    }
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     orcamento = models.ForeignKey(Orcamento, models.CASCADE, db_column="orcamento_id", related_name="ambientes")
-    tipo = models.CharField(max_length=40, choices=TIPO_CHOICES, default="sala")
+    tipo = models.CharField(max_length=40, default="Sala")
     nome = models.CharField(max_length=255)
     ordem = models.IntegerField(default=0)
     observacoes = models.TextField(blank=True, null=True)
@@ -231,9 +246,16 @@ class OrcamentoAmbiente(TimeStampedMixin):
         db_table = "orcamento_ambientes"
         ordering = ["ordem", "created_at"]
 
+    def get_tipo_display(self) -> str:
+        tipo = (self.tipo or "").strip()
+
+        if not tipo:
+            return "Ambiente"
+
+        return self.TIPO_LEGACY_LABELS.get(tipo.lower(), tipo)
+
     def __str__(self) -> str:
         return self.nome
-
 
 class OrcamentoItem(TimeStampedMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
