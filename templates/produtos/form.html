@@ -2,6 +2,7 @@
 {% load static %}
 
 {% block content %}
+<div class="produto-form-light-page">
 <form method="post" class="panel produto-form-panel" enctype="multipart/form-data" novalidate>
   {% csrf_token %}
 
@@ -192,6 +193,7 @@
     <button class="btn-primary" type="submit">Salvar Produto</button>
   </div>
 </form>
+</div>
 
 <div class="scanner-modal" id="scannerModal" aria-hidden="true">
   <div class="scanner-modal-backdrop" data-close-scanner></div>

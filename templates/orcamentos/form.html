@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="orcamento-form-light-page">
 <form method="post" class="panel orcamento-form-panel" novalidate>
   {% csrf_token %}
 
@@ -131,4 +132,5 @@
     <button class="btn-primary" type="submit">Salvar Orçamento</button>
   </div>
 </form>
+</div>
 {% endblock %}
