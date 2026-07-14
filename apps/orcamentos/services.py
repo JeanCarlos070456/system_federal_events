@@ -18,6 +18,7 @@ from reportlab.lib.units import cm, mm
 from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (
     Image,
+    CondPageBreak,
     KeepTogether,
     PageBreak,
     Paragraph,
@@ -143,13 +144,19 @@ class OrcamentoService:
     @classmethod
     def _ambiente_titulo(cls, ambiente) -> str:
         """
-        Monta o título do ambiente para PDFs.
+        Define o título oficial do ambiente para PDFs.
 
-        Mantém compatibilidade com os tipos antigos salvos como código
-        e também aceita tipos personalizados digitados pelo usuário.
+        Regra:
+        - Se "Nome do ambiente" foi preenchido, usa somente esse nome.
+        - Se "Nome do ambiente" estiver vazio, usa o tipo do ambiente.
+
+        Isso evita duplicações como "Auditório Auditório" ou "Outro SUBLOCACAO".
         """
         tipo_raw = str(getattr(ambiente, "tipo", "") or "").strip()
         nome_raw = str(getattr(ambiente, "nome", "") or "").strip()
+
+        if nome_raw:
+            return nome_raw
 
         tipos_padrao = {
             "sala": "Sala",
@@ -160,12 +167,8 @@ class OrcamentoService:
         }
 
         tipo_key = tipo_raw.lower()
-        tipo_label = tipos_padrao.get(tipo_key, tipo_raw.title() if tipo_raw else "Ambiente")
 
-        if nome_raw:
-            return f"{tipo_label} {nome_raw}"
-
-        return tipo_label
+        return tipos_padrao.get(tipo_key, tipo_raw.title() if tipo_raw else "Ambiente")
 
     @staticmethod
     def calcular_item_total(item: OrcamentoItem) -> Decimal:
@@ -595,6 +598,39 @@ class OrcamentoService:
             fontName="Times-Bold",
         )
 
+        os_orcamento_style = ParagraphStyle(
+            "FederalOrcamentoOS",
+            parent=normal_style,
+            fontName="Times-Bold",
+            fontSize=13,
+            leading=16,
+            textColor=cls.PDF_NAVY,
+            alignment=TA_LEFT,
+            spaceAfter=2,
+        )
+
+        enviada_style = ParagraphStyle(
+            "FederalOrcamentoEnviada",
+            parent=normal_style,
+            fontName="Times-Bold",
+            fontSize=12,
+            leading=15,
+            textColor=colors.HexColor("#E91E63"),
+            alignment=TA_LEFT,
+            spaceAfter=12,
+        )
+
+        dados_linha_style = ParagraphStyle(
+            "FederalOrcamentoDadosLinha",
+            parent=normal_style,
+            fontName="Times-Roman",
+            fontSize=11,
+            leading=15,
+            textColor=cls.PDF_TEXT,
+            alignment=TA_LEFT,
+            spaceAfter=4,
+        )
+
         elements = []
 
         elements.append(Paragraph("ORÇAMENTO COMERCIAL DE LOCAÇÃO DE EQUIPAMENTOS E SERVIÇOS", title_style))
@@ -603,57 +639,48 @@ class OrcamentoService:
         cliente_nome = orcamento.cliente_nome or (
             orcamento.cliente.nome if orcamento.cliente else "Não informado"
         )
-        cliente_documento = orcamento.cliente_documento or (
-            orcamento.cliente.documento if orcamento.cliente else "Não informado"
-        )
 
         periodo = f"{cls._date(orcamento.data_inicio)} a {cls._date(orcamento.data_fim)}"
+        enviado_em = cls._date(orcamento.data_envio)
+        montagem = cls._date(orcamento.data_montagem)
 
-        dados_table = Table(
-            [
-                [Paragraph("EVENTO", label_style), Paragraph("CLIENTE", label_style)],
-                [cls._p(orcamento.evento_nome, normal_style), cls._p(cliente_nome, normal_style)],
-                [Paragraph("OS - ORDEM DE SERVIÇO", os_label_style), Paragraph("LOCAL", label_style)],
-                [Paragraph(str(orcamento.codigo), os_value_style), cls._p(orcamento.local_evento, normal_style)],
-                [Paragraph("DATA", label_style), Paragraph("VALOR DO ORÇAMENTO", label_style)],
-                [cls._p(periodo, normal_style), Paragraph(cls._money(orcamento.valor_final), normal_style)],
-                [Paragraph("CNPJ", label_style), Paragraph("RESPONSÁVEL", label_style)],
-                [cls._p(cliente_documento, normal_style), cls._p(orcamento.responsavel_cliente, normal_style)],
-            ],
-            colWidths=[8 * cm, 8 * cm],
-        )
+        dados_linhas = [
+            Paragraph(
+                f"ORDEM DE SERVIÇO {escape(cls._safe(orcamento.codigo))}",
+                os_orcamento_style,
+            ),
+            Paragraph(
+                f"Enviada em {escape(enviado_em)}",
+                enviada_style,
+            ),
+            Spacer(1, 6),
+            Paragraph(
+                f"<b>AC:</b> {escape(cls._safe(orcamento.responsavel_cliente))}",
+                dados_linha_style,
+            ),
+            Paragraph(
+                f"<b>EVENTO:</b> {escape(cls._safe(orcamento.evento_nome))}",
+                dados_linha_style,
+            ),
+            Paragraph(
+                f"<b>CLIENTE:</b> {escape(cls._safe(cliente_nome))}",
+                dados_linha_style,
+            ),
+            Paragraph(
+                f"<b>DATA:</b> {escape(periodo)}",
+                dados_linha_style,
+            ),
+            Paragraph(
+                f"<b>LOCAL:</b> {escape(cls._safe(orcamento.local_evento))}",
+                dados_linha_style,
+            ),
+            Paragraph(
+                f"<b>MONTAGEM:</b> {escape(montagem)}",
+                dados_linha_style,
+            ),
+        ]
 
-        dados_table.setStyle(
-            TableStyle(
-                [
-                    ("BOX", (0, 0), (-1, -1), 0.6, cls.PDF_GRID),
-                    ("INNERGRID", (0, 0), (-1, -1), 0.35, cls.PDF_GRID),
-                    ("BACKGROUND", (0, 0), (-1, -1), colors.white),
-                    ("BACKGROUND", (0, 0), (-1, 0), cls.PDF_LIGHT_GRAY),
-                    ("BACKGROUND", (0, 2), (0, 2), cls.PDF_BLUE),
-                    ("BACKGROUND", (0, 3), (0, 3), cls.PDF_OS_LIGHT_BLUE),
-                    ("BACKGROUND", (1, 2), (1, 2), cls.PDF_LIGHT_GRAY),
-                    ("BACKGROUND", (0, 4), (-1, 4), cls.PDF_LIGHT_GRAY),
-                    ("BACKGROUND", (0, 6), (-1, 6), cls.PDF_LIGHT_GRAY),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-                    ("TOPPADDING", (0, 0), (-1, -1), 7),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-                    ("TOPPADDING", (0, 3), (0, 3), 10),
-                    ("BOTTOMPADDING", (0, 3), (0, 3), 10),
-                ]
-            )
-        )
-
-        elements.append(
-            KeepTogether(
-                [
-                    Paragraph("DADOS CADASTRAIS DO DOCUMENTO", section_style),
-                    dados_table,
-                ]
-            )
-        )
+        elements.append(KeepTogether(dados_linhas))
 
         ambientes = list(orcamento.ambientes.prefetch_related("itens").all())
 
@@ -733,6 +760,7 @@ class OrcamentoService:
                 table_rows,
                 colWidths=[6.7 * cm, 1.5 * cm, 1.5 * cm, 3.0 * cm, 3.3 * cm],
                 repeatRows=1,
+                splitByRow=1,
             )
 
             itens_table.setStyle(
@@ -754,20 +782,25 @@ class OrcamentoService:
                 )
             )
 
-            bloco_ambiente = []
-
+            # Paginação inteligente do ambiente:
+            #
+            # Antes, todo o bloco do ambiente ficava dentro de KeepTogether.
+            # Quando a tabela era grande, o ReportLab jogava o bloco inteiro
+            # para a próxima página, deixando uma página anterior quase vazia.
+            #
+            # Agora mantemos apenas uma área mínima para o título + cabeçalho +
+            # primeiras linhas. Se a tabela for longa, ela pode continuar na
+            # próxima página com o cabeçalho repetido, evitando folhas em branco
+            # e impedindo que o título fique isolado no rodapé.
             if index == 0:
-                bloco_ambiente.append(Paragraph("DETALHAMENTO DO ORÇAMENTO", section_style))
+                elements.append(CondPageBreak(6.0 * cm))
+                elements.append(Paragraph("DETALHAMENTO DO ORÇAMENTO", section_style))
+            else:
+                elements.append(CondPageBreak(4.8 * cm))
 
-            bloco_ambiente.extend(
-                [
-                    Paragraph(cls._safe(titulo_ambiente), ambiente_style),
-                    itens_table,
-                    Spacer(1, 7),
-                ]
-            )
-
-            elements.append(KeepTogether(bloco_ambiente))
+            elements.append(Paragraph(cls._safe(titulo_ambiente), ambiente_style))
+            elements.append(itens_table)
+            elements.append(Spacer(1, 7))
 
         resumo_table = Table(
             [
@@ -1239,6 +1272,7 @@ class OrcamentoService:
                 table_rows,
                 colWidths=[6.7 * cm, 1.5 * cm, 1.5 * cm, 3.0 * cm, 3.3 * cm],
                 repeatRows=1,
+                splitByRow=1,
             )
 
             itens_table.setStyle(

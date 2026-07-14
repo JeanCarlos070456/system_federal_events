@@ -61,6 +61,36 @@ def _produto_catalogo_descricao(produto: Produto) -> str:
     return " · ".join(partes)
 
 
+def _ambiente_titulo_oficial(tipo: str | None, nome: str | None = None) -> str:
+    """
+    Define o título oficial do ambiente.
+
+    Regra:
+    - Se o usuário informou "Nome do ambiente", esse nome é o título oficial.
+    - Se não informou nome, o título oficial será o tipo selecionado/digitado.
+
+    Evita duplicações como "Auditório Auditório" ou "Outro SUBLOCACAO".
+    """
+    nome_raw = (nome or "").strip()
+
+    if nome_raw:
+        return nome_raw[:255]
+
+    tipo_raw = (tipo or "").strip()
+
+    tipos_padrao = {
+        "sala": "Sala",
+        "auditorio": "Auditório",
+        "auditório": "Auditório",
+        "credenciamento": "Credenciamento",
+        "outro": "Outro",
+    }
+
+    tipo_label = tipos_padrao.get(tipo_raw.lower(), tipo_raw.title() if tipo_raw else "Ambiente")
+
+    return tipo_label[:255]
+
+
 STATUS_ANALISE_VALUES = [
     "Em análise",
     "Em analise",
@@ -351,9 +381,17 @@ def add_ambiente(request, pk):
     if request.method == "POST" and form.is_valid():
         ambiente = form.save(commit=False)
         ambiente.orcamento = orcamento
+        ambiente.tipo = (ambiente.tipo or "").strip()
+        ambiente.nome = _ambiente_titulo_oficial(
+            tipo=ambiente.tipo,
+            nome=ambiente.nome,
+        )
         ambiente.save()
 
-        messages.success(request, "Ambiente adicionado.")
+        messages.success(request, f"Ambiente '{ambiente.nome}' adicionado.")
+
+    elif request.method == "POST":
+        messages.error(request, "Não foi possível adicionar o ambiente. Verifique os campos obrigatórios.")
 
     return redirect("orcamentos:detail", pk=orcamento.pk)
 
@@ -383,7 +421,7 @@ def delete_ambiente(request, pk, ambiente_id):
             )
             return redirect("orcamentos:detail", pk=orcamento.pk)
 
-        nome_ambiente = ambiente.nome or ambiente.get_tipo_display()
+        nome_ambiente = _ambiente_titulo_oficial(ambiente.tipo, ambiente.nome)
         total_itens = ambiente.itens.count()
 
         ambiente.delete()

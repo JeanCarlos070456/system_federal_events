@@ -84,6 +84,18 @@ class AmbienteForm(FederalModelForm):
         ),
     )
 
+    nome = forms.CharField(
+        label="Nome do ambiente",
+        required=False,
+        max_length=255,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "Ex: Auditório Vermelho, Sala VIP, Garagem principal...",
+                "autocomplete": "off",
+            }
+        ),
+    )
+
     class Meta:
         model = OrcamentoAmbiente
         fields = [
@@ -113,6 +125,10 @@ class AmbienteForm(FederalModelForm):
         normalized_key = tipo.lower()
 
         return legacy_labels.get(normalized_key, tipo[:40])
+
+    def clean_nome(self):
+        nome = (self.cleaned_data.get("nome") or "").strip()
+        return nome[:255]
 
 
 class ItemForm(FederalModelForm):

@@ -75,13 +75,16 @@
         </datalist>
 
         <small>
-          Você pode selecionar uma sugestão ou digitar um tipo personalizado.
+          Você pode selecionar uma sugestão ou digitar um tipo personalizado. Se não preencher o nome, o tipo será usado como título.
         </small>
       </p>
 
       <p>
         <label for="{{ ambiente_form.nome.id_for_label }}">Nome do ambiente</label>
         {{ ambiente_form.nome }}
+        <small>
+          Este será o título oficial da tabela no orçamento. Se ficar vazio, o sistema usará o tipo.
+        </small>
       </p>
 
       <p>
@@ -105,8 +108,11 @@
       <div class="orcamento-ambiente-header">
         <div>
           <h3>
-            {{ amb.nome }}
-            <small>{{ amb.get_tipo_display }}</small>
+            {% if amb.nome %}
+              {{ amb.nome }}
+            {% else %}
+              {{ amb.tipo|default:'Ambiente' }}
+            {% endif %}
           </h3>
 
           {% if amb.observacoes %}
@@ -437,7 +443,7 @@
           <input type="checkbox" name="assinado_empresa" value="1">
           <span>
             Assinado — incluir assinatura da empresa no contrato
-            <small>Arquivo esperado: static/img/assinatura.png</small>
+            <small>Assinatura do representante da Federal Eventos</small>
           </span>
         </label>
 
