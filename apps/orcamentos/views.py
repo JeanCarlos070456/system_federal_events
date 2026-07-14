@@ -101,10 +101,10 @@ STATUS_ANALISE_VALUES = [
     "",
 ]
 
-STATUS_CONCLUIDO_VALUES = [
+STATUS_APROVADO_VALUES = [
+    "Aprovado",
     "Concluído",
     "Concluido",
-    "Aprovado",
     "Finalizado",
 ]
 
@@ -112,8 +112,8 @@ STATUS_CONCLUIDO_VALUES = [
 def normalizar_status_orcamento(status: str | None) -> str:
     status = (status or "").strip()
 
-    if status in STATUS_CONCLUIDO_VALUES:
-        return "Concluído"
+    if status in STATUS_APROVADO_VALUES:
+        return "Aprovado"
 
     return "Em análise"
 
@@ -187,12 +187,12 @@ def index(request):
 
     if status == "Em análise":
         qs = qs.filter(status__in=STATUS_ANALISE_VALUES)
-    elif status == "Concluído":
-        qs = qs.filter(status__in=STATUS_CONCLUIDO_VALUES)
+    elif status == "Aprovado":
+        qs = qs.filter(status__in=STATUS_APROVADO_VALUES)
 
     status_options = [
         "Em análise",
-        "Concluído",
+        "Aprovado",
     ]
 
     page_obj = Paginator(qs, 20).get_page(request.GET.get("page"))

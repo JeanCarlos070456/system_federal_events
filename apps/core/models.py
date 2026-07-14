@@ -180,7 +180,7 @@ class ProdutoPatrimonio(TimeStampedMixin):
 class Orcamento(TimeStampedMixin):
     STATUS_CHOICES = (
         ("Em análise", "Em análise"),
-        ("Concluído", "Concluído"),
+        ("Aprovado", "Aprovado"),
     )
     FINANCEIRO_CHOICES = (("Pendente", "Pendente"), ("Parcial", "Parcial"), ("Pago", "Pago"), ("Atrasado", "Atrasado"), ("Cancelado", "Cancelado"))
 

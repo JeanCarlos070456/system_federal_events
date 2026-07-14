@@ -63,8 +63,8 @@
               <td>{{ o.evento_nome }}</td>
               <td>{{ o.cliente.nome|default:o.cliente_nome|default:'—' }}</td>
               <td>
-                {% if o.status_visual == "Concluído" %}
-                  <span class="badge-status badge-status-concluido">Concluído</span>
+                {% if o.status_visual == "Aprovado" %}
+                  <span class="badge-status badge-status-concluido">Aprovado</span>
                 {% else %}
                   <span class="badge-status badge-status-analise">Em análise</span>
                 {% endif %}
