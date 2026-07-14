@@ -3792,3 +3792,53 @@ td a {color:var(--color-success); text-decoration:none; font-weight:900}
         padding: 1rem 0.85rem 2rem;
     }
 }
+/* =========================================================
+   SIDEBAR — ITENS MAIORES E MAIS CONFORTÁVEIS
+   ========================================================= */
+
+.federal-sidebar {
+    width: 360px;
+}
+
+.app-shell {
+    padding-left: 360px;
+}
+
+.sidebar-nav {
+    gap: 0.85rem;
+}
+
+.sidebar-link {
+    min-height: 54px;
+    padding: 1rem 1.05rem;
+    border-radius: 18px;
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+}
+
+.sidebar-link img {
+    width: 34px;
+    height: 34px;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active {
+    transform: translateX(4px);
+}
+
+/* Responsivo — mantém o comportamento mobile */
+@media (max-width: 860px) {
+    .federal-sidebar {
+        width: min(88vw, 330px);
+    }
+
+    .app-shell {
+        padding-left: 0;
+    }
+
+    .sidebar-link {
+        min-height: 56px;
+        font-size: 1rem;
+    }
+}

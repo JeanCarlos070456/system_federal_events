@@ -6,7 +6,10 @@ from datetime import date, timedelta
 from decimal import Decimal
 from html import escape
 from io import BytesIO
+import os
 
+from django.conf import settings
+from django.contrib.staticfiles import finders
 from django.db.models import Q
 from django.utils import timezone
 
@@ -23,6 +26,7 @@ from apps.core.models import Orcamento, OrcamentoItem
 class AgendaService:
     PDF_NAVY = colors.HexColor("#071A39")
     PDF_BLUE = colors.HexColor("#08789C")
+    PDF_PURPLE = colors.HexColor("#9A66FF")
     PDF_LIGHT = colors.HexColor("#F3F6F9")
     PDF_GRID = colors.HexColor("#D9DEE7")
     PDF_TEXT = colors.HexColor("#111827")
@@ -281,12 +285,81 @@ class AgendaService:
         return rows
 
     @classmethod
-    def _draw_pdf_footer(cls, canvas, doc):
+    def _logo_path(cls) -> str:
+        """
+        Localiza a logo institucional usada nos PDFs.
+
+        A busca é tolerante para funcionar tanto em ambiente local quanto
+        no Render, onde os arquivos estáticos podem estar coletados.
+        """
+        static_name = "img/logo_vazada.png"
+
+        try:
+            found = finders.find(static_name)
+            if found and os.path.exists(found):
+                return found
+        except Exception:
+            pass
+
+        candidates = [
+            os.path.join(getattr(settings, "BASE_DIR", ""), "static", "img", "logo_vazada.png"),
+            os.path.join(getattr(settings, "BASE_DIR", ""), "assets", "img", "logo_vazada.png"),
+            os.path.join(getattr(settings, "STATIC_ROOT", ""), "img", "logo_vazada.png"),
+        ]
+
+        for candidate in candidates:
+            if candidate and os.path.exists(candidate):
+                return candidate
+
+        return ""
+
+    @classmethod
+    def _draw_pdf_header_footer(cls, canvas, doc):
+        """
+        Cabeçalho e rodapé padronizados com orçamento/contrato:
+        faixa azul, logo institucional, nome Federal Eventos e linha roxa.
+        """
+        width, height = A4
+
         canvas.saveState()
+
+        # Cabeçalho institucional
+        header_height = 2.45 * cm
+        header_y = height - header_height
+
+        canvas.setFillColor(cls.PDF_BLUE)
+        canvas.rect(0, header_y, width, header_height, fill=1, stroke=0)
+
+        logo_path = cls._logo_path()
+        if logo_path:
+            try:
+                canvas.drawImage(
+                    logo_path,
+                    2.25 * cm,
+                    header_y + 0.45 * cm,
+                    width=1.25 * cm,
+                    height=1.25 * cm,
+                    preserveAspectRatio=True,
+                    mask="auto",
+                )
+            except Exception:
+                pass
+
+        canvas.setFillColor(colors.white)
+        canvas.setFont("Times-Bold", 15)
+        canvas.drawRightString(width - 2.45 * cm, header_y + 1.15 * cm, "Federal Eventos")
+
+        # Linha roxa abaixo da faixa azul
+        canvas.setStrokeColor(cls.PDF_PURPLE)
+        canvas.setLineWidth(1.2)
+        canvas.line(2.45 * cm, header_y - 0.30 * cm, width - 2.45 * cm, header_y - 0.30 * cm)
+
+        # Rodapé
         canvas.setFillColor(colors.HexColor("#6B7280"))
         canvas.setFont("Times-Roman", 8)
-        canvas.drawCentredString(A4[0] / 2, 1.2 * cm, "Relação de evento emitida pela Federal Eventos")
-        canvas.drawRightString(A4[0] - 2 * cm, 1.2 * cm, f"Página {doc.page}")
+        canvas.drawCentredString(width / 2, 1.2 * cm, "Relação de evento emitida pela Federal Eventos")
+        canvas.drawRightString(width - 2 * cm, 1.2 * cm, f"Página {doc.page}")
+
         canvas.restoreState()
 
     @classmethod
@@ -298,7 +371,7 @@ class AgendaService:
             pagesize=A4,
             leftMargin=1.6 * cm,
             rightMargin=1.6 * cm,
-            topMargin=1.5 * cm,
+            topMargin=3.6 * cm,
             bottomMargin=2 * cm,
             title=f"Relação do Evento {orcamento.codigo}",
             author="Federal Eventos",
@@ -434,7 +507,7 @@ class AgendaService:
             ambiente_header.setStyle(
                 TableStyle(
                     [
-                        ("BACKGROUND", (0, 0), (-1, -1), cls.PDF_NAVY),
+                        ("BACKGROUND", (0, 0), (-1, -1), cls.PDF_BLUE),
                         ("TEXTCOLOR", (0, 0), (-1, -1), colors.white),
                         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                         ("TOPPADDING", (0, 0), (-1, -1), 6),
@@ -503,7 +576,7 @@ class AgendaService:
             elements.append(table)
             elements.append(Spacer(1, 13))
 
-        doc.build(elements, onFirstPage=cls._draw_pdf_footer, onLaterPages=cls._draw_pdf_footer)
+        doc.build(elements, onFirstPage=cls._draw_pdf_header_footer, onLaterPages=cls._draw_pdf_header_footer)
 
         pdf = buffer.getvalue()
         buffer.close()
