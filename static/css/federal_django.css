@@ -3842,3 +3842,49 @@ td a {color:var(--color-success); text-decoration:none; font-weight:900}
         font-size: 1rem;
     }
 }
+/* =========================================================
+   LOGIN — CENTRALIZAÇÃO ABSOLUTA NA TELA
+   ========================================================= */
+
+.app-shell-login {
+    padding-left: 0 !important;
+    margin-left: 0 !important;
+    width: 100vw !important;
+    min-height: 100vh !important;
+}
+
+.app-shell-login .content-wrap {
+    width: 100vw !important;
+    max-width: none !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.login-page {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 24px !important;
+    box-sizing: border-box !important;
+}
+
+.login-card {
+    width: min(420px, calc(100vw - 48px)) !important;
+    max-width: 420px !important;
+    margin: 0 auto !important;
+    transform: none !important;
+}
+
+/* Garante que nada da sidebar empurre o login */
+body:has(.login-page) .federal-sidebar {
+    display: none !important;
+}
+
+body:has(.login-page) .app-shell {
+    padding-left: 0 !important;
+}
